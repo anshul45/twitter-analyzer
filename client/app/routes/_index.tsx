@@ -82,7 +82,7 @@ export default function Index() {
                   label: 'Tweets',
                   children: (
                     <div className="overflow-y-auto max-h-[70vh]">
-                      {result.tweets.map((tweet, index) => (
+                      {result?.tweets?.map((tweet, index) => (
                         <div key={index} className="my-2 p-2 bg-gray-50 rounded">
                           {tweet}
                         </div>
