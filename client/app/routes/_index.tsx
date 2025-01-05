@@ -1,10 +1,12 @@
 import type { MetaFunction } from '@remix-run/node';
 import { useState } from 'react';
 import { getTweets, TwitterResponse } from '~/common/api.request';
-import { Tabs, Spin, message, Input, Button, Flex, Select, SelectProps, InputRef, Divider, Space, Tag } from 'antd';
+import { Spin, message, Input, Button, Flex, Select,Space,DatePicker } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import Header from '~/components/Header';
+import OptionSelector from '~/components/ui/OptionSelector';
+import OriginalTweets from '~/components/OriginalTweets';
+import FilteredTweets from '~/components/FilteredTweets';
+import ResearchReport from '~/components/ResearchReport';
 
 export const meta: MetaFunction = () => {
   return [
@@ -19,6 +21,8 @@ export default function Index() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TwitterResponse | null>(null);
   const [activeTab, setActiveTab] = useState('tweets');
+  const [options,setOptions] = useState(["Original Tweets","Filtered Tweets","Research Report"])
+  const [selectedOption,setSelectedOption] = useState("Original Tweets")
 
   const handleSubmit = async () => {
     if (!usernames.length || !cashtag) {
@@ -42,135 +46,84 @@ export default function Index() {
 
 
   return (
-    <>
-      <Header />
-      <Flex className="px-10 h-[calc(100vh-48px)]">
-        <div className="mt-10 mb-5 flex-[0.3]">
-          <div>
-            <h1 className="mb-3 font-semibold">Enter Twitter Username</h1>
-            <div className='bg-gray-50 text-gray-500 text-xs w-full rounded-md p-2'>
-              Add multiple usernames by this format user1, user2, user3
+    <div className='px-5 py-4'>
+      <div className='font-bold text-2xl'>Tweet Analysis</div>
+      <Flex className="mt-5" gap={30}>
+        <Space size='large' direction='vertical' className=" flex-[0.3] border-[1px] px-5 py-3 rounded-md">
+            <h1 className="font-semibold text-xl ">Submit Analysis</h1>
+            <div>
+            <h5 className='text-sm font-semibold'>Usernames</h5>
+            <Input.TextArea rows={3} placeholder='Enter usernames (one per line) ex:- user1,user2,user3 etc.'/>
             </div>
-            <Selector usernames={usernames} setUsernames={setUsernames}/>
-          </div>
-          <div className="mt-10">
-            <h1 className="mb-3 font-semibold">Enter Cashtag</h1>
-            <Input
-              value={cashtag}
-              onChange={(e) => setCashtag(e.target.value)}
-            />
-          </div>
+          
+            <div>
+            <h5 className='text-sm font-semibold'>Cashtag</h5>
+            <Input.TextArea rows={3} placeholder='Enter Cashtag ex:- $Uber'/>
+            </div>
           <Button
-            className="w-full mt-10"
+            className="w-full"
             type="primary"
+            variant='solid'
+            color='default'
             onClick={handleSubmit}
             disabled={loading}
           >
             {loading ? <Spin /> : 'Analyze Tweets'}
           </Button>
-        </div>
+        </Space>
 
-        <div className="flex-[0.7] p-10">
-          {loading ? (
+        <div className="flex-[0.7]">
+          {false ? (
             <Flex justify="center" align="center" className="h-full">
               <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
             </Flex>
-          ) : result ? (
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              items={[
-                {
-                  key: 'tweets',
-                  label: 'Tweets',
-                  children: (
-                    <div className="overflow-y-auto max-h-[70vh]">
-                      {result.tweets.map((tweet, index) => (
-                        <div key={index} className="my-2 p-2 bg-gray-50 rounded">
-                          {tweet}
-                        </div>
-                      ))}
-                    </div>
-                  ),
-                },
-                {
-                  key: 'report',
-                  label: 'Analysis Report',
-                  children: (
-                    <div className="prose max-w-full overflow-y-auto max-h-[70vh]">
-                      <ReactMarkdown>{result.report}</ReactMarkdown>
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          ) : (
-            <Flex justify="center" align="center" className="h-full">
-              <h1 className="font-semibold text-lg">No Data...</h1>
-            </Flex>
-          )}
+          ) :(
+           <div className='border-[1px] h-full rounded-md px-5 py-3'>
+             <h1 className="font-semibold text-xl mb-5">Filters</h1>
+             <Flex gap={50}>
+             <div>
+            <h5 className='text-sm font-semibold'>Filter By Date</h5>
+            <DatePicker  />
+            </div>
+            <div className='w-full'>
+            <h5 className='text-sm font-semibold'>Filter By Username</h5>
+            <Select
+            placeholder="Select user"
+            options={[
+      {
+        value: 'jack',
+        label: 'Jack',
+      },
+      {
+        value: 'lucy',
+        label: 'Lucy',
+      },
+      {
+        value: 'tom',
+        label: 'Tom',
+      },
+    ]}/>
+            </div>
+             </Flex>
+           </div>
+          ) 
+        } 
         </div>
       </Flex>
-    </>
-  );
-}
-
-
-
-const Selector: React.FC<SelectorProps> = ({usernames,setUsernames}:any) => {
-  const [inputValue, setInputValue] = useState<string>("");
-
-  const handleAddItem = () => {
-    if (inputValue.trim() && !usernames.includes(inputValue.trim())) {
-      const newItems = inputValue.split(",")
-      .map((item) => item.trim())
-      .filter(item => item && !usernames.includes(item));
-      setUsernames([...usernames, ...newItems]);
-      setInputValue("");
-    }
-  };
-
-  const handleRemoveItem = (item: string) => {
-    setUsernames(usernames.filter((i : string) => i !== item));
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-  };
-
-  return (
-    <div style={{ width: "100%" }}>
-      <div style={{ marginTop: 16 }}>
-        {usernames.map((item:string) => (
-          <Tag
-            bordered={false}
-            color="processing"
-            key={item}
-            closable
-            onClose={() => handleRemoveItem(item)}
-            style={{ marginBottom: 8 }}
-          >
-            {item}
-          </Tag>
-        ))}
+      <div className='my-5'>
+      <OptionSelector options={options} selectedOption={selectedOption} setSelectedOption={setSelectedOption}/>
       </div>
-      <Space.Compact style={{ width: "100%" }}>
-        <Input
-          value={inputValue}
-          onChange={handleInputChange}
-          placeholder="Add an item"
-          onPressEnter={handleAddItem}
-        />
-        <Button type="primary" onClick={handleAddItem}>
-          Add
-        </Button>
-      </Space.Compact>
+      {
+        selectedOption == "Original Tweets" 
+        ? <OriginalTweets/> 
+        :  selectedOption == "Filtered Tweets" 
+        ? <FilteredTweets/>
+        :<ResearchReport/>
+      }
     </div>
+    
   );
-};
-
-
-interface SelectorProps{
-  usernames:string[],
-  setUsernames:React.Dispatch<React.SetStateAction<string[]>>
 }
+
+
+

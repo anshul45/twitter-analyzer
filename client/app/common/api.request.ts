@@ -8,7 +8,7 @@ export interface TwitterResponse {
 export const getTweets = async (usernames: string[], cashtag: string): Promise<TwitterResponse> => {
   try {
     const response = await axios.get(
-      `https://twitter-analyzer.onrender.com/twitter?username=${usernames}&cashtag=${cashtag}`
+      `http://localhost:3000/twitter?username=${usernames}&cashtag=${cashtag}`
     );
     return response.data;
   } catch (error) {
