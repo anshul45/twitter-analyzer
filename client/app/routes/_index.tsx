@@ -48,6 +48,9 @@ export default function Index() {
         <div className="mt-10 mb-5 flex-[0.3]">
           <div>
             <h1 className="mb-3 font-semibold">Enter Twitter Username</h1>
+            <div className='bg-gray-50 text-gray-500 text-xs w-full rounded-md p-2'>
+              Add multiple usernames by this format user1, user2, user3
+            </div>
             <Selector usernames={usernames} setUsernames={setUsernames}/>
           </div>
           <div className="mt-10">
