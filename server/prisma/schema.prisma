@@ -1,0 +1,15 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  tweets      Json  
+}

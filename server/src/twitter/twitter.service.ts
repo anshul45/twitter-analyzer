@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { ActorRun, ApifyClient } from 'apify-client';
 import { OpenAIWrapper } from 'src/modules/openai/openai.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 dotenv.config();
 
 interface InputData {
@@ -16,7 +17,7 @@ export class TwitterService {
   private tweets: Record<string | number, unknown>[];
   private allTwitts: unknown[];
 
-  constructor(private readonly openAiService: OpenAIWrapper) {
+  constructor(private readonly openAiService: OpenAIWrapper, private prismaService: PrismaService) {
     const apiKey = process.env.APIFY_API_KEY;
     if (!apiKey) {
       throw new Error('Apify API key is required. Set it in environment.');
@@ -24,27 +25,19 @@ export class TwitterService {
     this.client = new ApifyClient({ token: apiKey });
     this.input = { username: '', max_posts: 50 };
   }
-
-  async getTweets(
+  async getAnalysis(
     username: string,
     cashtag: string,
-  ): Promise<{ tweets: string[]; report: string; rawTweets:unknown[]}> {
+  ): Promise<{ tweets: string[]; report: string; rawTweets: unknown[] }> {
     if (username) {
       this.input.username = username;
     }
 
     try {
-      const run: ActorRun = await this.client
-        .actor('SfyC2ifoAKkAUvjTt')
-        .call(this.input);
-      const { items } = await this.client
-        .dataset(run.defaultDatasetId)
-        .listItems();
-      if (items) {
-        this.tweets = items;
-      }
-
-      this.allTwitts = this.tweets.map((tweet) => tweet.text);
+      const result = await this.prismaService.users.findMany({ where: { name: username } })
+      const tweets = result[0]?.tweets
+      const tweetsArray = Object.values(tweets);
+      this.allTwitts = tweetsArray.map((tweet) => tweet.text);
 
       // Filter all tweets at once
       const filterPrompt = `Here are some tweets:\n\n${this.allTwitts.join('\n-----------------')}\n\nPlease return a JSON format containing only the tweets relevant to ${cashtag}. Each tweet should be a string in the list.`;
@@ -109,11 +102,47 @@ Technical Context
       return {
         tweets: filteredMessages.tweets,
         report: response.content as string,
-        rawTweets : this.allTwitts
+        rawTweets: this.allTwitts
       }
     } catch (error) {
       console.error('Error fetching tweets:', error);
       throw new Error('Failed to fetch tweets.');
+    }
+  }
+
+  async savetoDB(username: string): Promise<void> {
+    try {
+      this.input.username = username
+      const run: ActorRun = await this.client
+        .actor('SfyC2ifoAKkAUvjTt')
+        .call(this.input);
+
+      const { items } = await this.client
+        .dataset(run.defaultDatasetId)
+        .listItems();
+
+      if (!items.length) {
+        console.log(`No tweets found for username: ${username}`);
+        return;
+      }
+
+      const jsonItems = items.map((item) => {
+        return JSON.parse(JSON.stringify(item));
+      });
+
+      await this.prismaService.users.upsert({
+        where: { name: username },
+        update: {
+          tweets: jsonItems,
+        },
+        create: {
+          name: username,
+          tweets: jsonItems,
+        },
+      });
+    } catch (error) {
+      console.error('Error saving tweets:', error);
+      throw new Error('Failed to save tweets.');
     }
   }
 }
