@@ -1,12 +1,13 @@
 import type { MetaFunction } from '@remix-run/node';
-import { useEffect, useState } from 'react';
+import {useState } from 'react';
 import { getTweets, TwitterResponse } from '~/common/api.request';
-import { Spin, message, Input, Button, Flex, Select,Space,DatePicker, Tag } from 'antd';
+import { Spin, message, Input, Button, Flex, Select, Space} from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import OptionSelector from '~/components/ui/OptionSelector';
 import OriginalTweets from '~/components/OriginalTweets';
 import FilteredTweets from '~/components/FilteredTweets';
 import ResearchReport from '~/components/ResearchReport';
+import Empty from '~/components/Empty';
 
 export const meta: MetaFunction = () => {
   return [
@@ -16,30 +17,24 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
-  const [usernames, setUsernames] = useState<string[]>([]);
-  const [value,setValue] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [cashtag, setCashtag] = useState('');
   const [loading, setLoading] = useState(false);
-  const [options,setOptions] = useState(["Original Tweets","Filtered Tweets","Research Report"])
-  const [selectedOption,setSelectedOption] = useState("Original Tweets")
-  const [result,setResult] = useState();
+  const [options, setOptions] = useState(["Original Tweets", "Filtered Tweets", "Research Report"])
+  const [selectedOption, setSelectedOption] = useState("Original Tweets")
+  const [result, setResult] = useState<TwitterResponse>();
 
   const handleSubmit = async () => {
-    if (!value.trim() || !cashtag.trim()) {
+    if (!username || !cashtag.trim()) {
       message.error('Please enter both usernames and a cashtag.');
       return;
     }
-  
-    const newUsernames = value
-      .split(",")
-      .map((v) => v.trim())
-      .filter((v) => v && !usernames.includes(v));
-    setUsernames((prev) => [...prev, ...newUsernames]);
-  
     setLoading(true);
     try {
-      const data = await getTweets([...usernames, ...newUsernames], cashtag);
-      setResult(data);
+      const data = await getTweets(username, cashtag);
+      if(data){
+        setResult(data);
+      }
     } catch (error) {
       console.error('Error fetching tweets:', error);
       message.error('Failed to fetch tweets');
@@ -47,90 +42,92 @@ export default function Index() {
       setLoading(false);
     }
   };
-  
+
+  const handleChange = (value: string) => {
+    if(value == undefined)
+    {
+      setUsername("")
+    }
+    setUsername(value)
+  }
 
 
- 
 
 
   return (
     <div className='px-5 py-4'>
       <div className='font-bold text-2xl'>Tweet Analysis</div>
-      <Flex className="mt-5" gap={30}>
-        <Space size='large' direction='vertical' className=" flex-[0.3] border-[1px] px-5 py-3 rounded-md">
-            <h1 className="font-semibold text-xl ">Submit Analysis</h1>
-
-            <div>
-            <h5 className='text-sm font-semibold'>Usernames</h5>
-            <Input.TextArea rows={3} placeholder='Enter usernames (one per line) ex:- user1,user2,user3 etc.' onChange={e => setValue(e.target.value)}/>
-            </div>
-          
-            <div>
-            <h5 className='text-sm font-semibold'>Cashtag</h5>
-            <Input placeholder='Enter Cashtag ex:- $Uber' value={cashtag} onChange={e=>setCashtag(e.target.value)}/>
-            </div>
-          <Button
-            className="w-full"
-            type="primary"
-            variant='solid'
-            color='default'
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? <Spin /> : 'Analyze Tweets'}
-          </Button>
-        </Space>
-
-        <div className="flex-[0.7]">
-          {false ? (
-            <Flex justify="center" align="center" className="h-full">
-              <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
-            </Flex>
-          ) :(
-           <div className='border-[1px] h-full rounded-md px-5 py-3'>
-             <h1 className="font-semibold text-xl mb-5">Filters</h1>
-             <Flex gap={50}>
-             <div>
-            <h5 className='text-sm font-semibold'>Filter By Date</h5>
-            <DatePicker  />
-            </div>
-            <div className='w-full'>
-            <h5 className='text-sm font-semibold'>Filter By Username</h5>
-            <Select
-            placeholder="Select user"
+      <Flex gap={20} className='mt-10'>
+      <Space size='large' direction='vertical' className=" flex-[0.2] border-[1px] px-5 py-3 rounded-md bg-gray-50">
+        <h1 className="font-semibold text-xl ">Get Analysis</h1>
+        <div>
+          <h5 className='text-sm font-semibold'>Select User</h5>
+          <Select
+            allowClear
+            placeholder="Select User"
+            style={{ width: 180 }}
+            onChange={handleChange}
             options={[
-      {
-        value: 'jack',
-        label: 'Jack',
-      },
-      {
-        value: 'lucy',
-        label: 'Lucy',
-      },
-      {
-        value: 'tom',
-        label: 'Tom',
-      },
-    ]}/>
-            </div>
-             </Flex>
-           </div>
-          ) 
-        } 
+              { value: "pakpakchicken", label: "pakpakchicken" },
+              { value: "fundstrat", label: "fundstrat" },
+              { value: "BourbonCap", label: "BourbonCap" },
+              { value: "ripster47", label: "ripster47" },
+              { value: "Micro2Macr0", label: "Micro2Macr0" },
+              { value: "LogicalThesis", label: "LogicalThesis" },
+              { value: "RichardMoglen", label: "RichardMoglen" },
+              { value: "Couch_Investor", label: "Couch_Investor" },
+              { value: "StockMarketNerd", label: "StockMarketNerd" },
+              { value: "MCins_", label: "MCins_" },
+              { value: "unusual_whales", label: "unusual_whales" }
+            ]}
+            />
         </div>
-      </Flex>
-      <div className='my-5'>
-      <OptionSelector options={options} selectedOption={selectedOption} setSelectedOption={setSelectedOption}/>
-      </div>
-      {
-        selectedOption == "Original Tweets" 
-        ? <OriginalTweets/> 
-        :  selectedOption == "Filtered Tweets" 
-        ? <FilteredTweets/>
-        :<ResearchReport/>
-      }
-    </div>
+
+        <div>
+          <h5 className='text-sm font-semibold'>Cashtag</h5>
+          <Input placeholder='Enter Cashtag ex:- $Uber' value={cashtag} onChange={e => setCashtag(e.target.value)} />
+        </div>
+        <Button
+          className="w-full"
+          type="primary"
+          variant='solid'
+          color='default'
+          onClick={handleSubmit}
+          disabled={loading}
+          >
+          {loading ? <Spin /> : 'Analyze Tweets'}
+        </Button>
+      </Space>
+      {loading ?
+    <Flex justify='center' align='center' className='w-full h-[calc(100vh-104px)] bg-gray-50 rounded-md'>
+       <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
+    </Flex> :  
     
+        result ? (
+
+          <div className='w-full flex-[0.8] bg-gray-50 px-5 py-3 rounded-md border-[1px]'>
+      <div className='mb-5'>
+        <OptionSelector options={options} selectedOption={selectedOption} setSelectedOption={setSelectedOption} />
+      </div>
+      <div className=' h-[calc(100vh-188px)] overflow-y-auto' style={{scrollbarWidth:"thin"}}>
+      {
+        selectedOption == "Original Tweets"
+        ? <OriginalTweets result={result?.rawTweets} />
+        : selectedOption == "Filtered Tweets"
+        ? <FilteredTweets result={result?.tweets} />
+        : <ResearchReport result={result?.report}/>
+      }
+      </div>
+    </div>
+      )
+      
+      :
+      <Empty/>
+
+      }
+          </Flex>
+      </div>
+
   );
 }
 

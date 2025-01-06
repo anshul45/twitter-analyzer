@@ -3,16 +3,29 @@ import axios from 'axios';
 export interface TwitterResponse {
   tweets: string[];
   report: string;
+  rawTweets:string[]
 }
 
-export const getTweets = async (usernames: string[], cashtag: string): Promise<TwitterResponse> => {
+export const getTweets = async (username: string, cashtag: string): Promise<TwitterResponse> => {
+  // const serverUrl = window.ENV.SERVER_URL;
+  // if (!serverUrl) {
+  //   throw new Error('SERVER_URL is not defined in the environment variables');
+  // }
+
   try {
     const response = await axios.get(
-      `process.env.SERVER_URL/twitter?username=${username}&cashtag=${cashtag}`
+      `http://localhost:3000/twitter?username=${username}&cashtag=${cashtag}`
     );
+
+    console.log(response.data)
+
     return response.data;
   } catch (error) {
-    console.error('Error fetching tweets:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching tweets:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error fetching tweets:', error);
+    }
     throw error;
   }
 };
