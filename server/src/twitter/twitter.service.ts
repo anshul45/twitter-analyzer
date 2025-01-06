@@ -46,27 +46,32 @@ export class TwitterService {
 
       this.allTwitts = this.tweets.map((tweet) => tweet.text);
 
-      // use openai to filter relevant tweets one by one
-      const filteredMessages: string[] = [];
+      // Filter all tweets at once
+      const filterPrompt = `Here are some tweets:\n\n${this.allTwitts.join('\n-----------------')}\n\nPlease return a JSON format containing only the tweets relevant to ${cashtag}. Each tweet should be a string in the list.`;
 
-      for (const tweet of this.allTwitts) {
-        const filterPrompt = `Is this tweet relevant to ${cashtag}? Reply with "yes" or "no":\n\n${tweet}`;
+      const filteredResponse = await this.openAiService.generateResponse(
+        filterPrompt,
+        `You are a helpful AI that determines if tweets are relevant to a given cashtag. 
+        You will receive the list of tweets.
+        Go through each tweet and decide if it is relevant to the cashtag and return only the relevant tweets.
+         Return JSON of relevant tweets in the following format:
+          {
+            "tweets": [
+              "Tweet 1",
+              "Tweet 2",
+              "Tweet 3"
+            ]
+          }
+         `,
+        {
+          outputFormat: 'json',
+        },
+      );
 
-        const filteredResponse = await this.openAiService.generateResponse(
-          filterPrompt,
-          'You are a helpful AI that determines if tweets are relevant to a given cashtag. Reply with "yes" or "no" only.',
-        );
-
-        if (
-          typeof filteredResponse.content === 'string' &&
-          filteredResponse.content.toLowerCase().trim() === 'yes'
-        ) {
-          filteredMessages.push(tweet as string);
-        }
-      }
+      const filteredMessages: any = filteredResponse.content;
 
       const response = await this.openAiService.generateResponse(
-        filteredMessages.join('\n'),
+        filteredMessages?.tweets?.join('\n'),
         `Please analyze these cashtag-related (${cashtag}) tweets and provide a detailed report covering:
 
 1. Market Sentiment & Trading Activity
@@ -102,7 +107,7 @@ Technical Context
       );
 
       return {
-        tweets: filteredMessages,
+        tweets: filteredMessages.tweets,
         report: response.content as string,
       };
     } catch (error) {
