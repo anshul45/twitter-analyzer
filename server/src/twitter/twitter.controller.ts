@@ -19,11 +19,20 @@ export class TwitterController {
     try {
       console.log('processing text');
       console.log(username, cashtag);
-      const { tweets, report } = await this.twitter.getTweets(
-        username,
-        cashtag,
+
+      const usernames = username.split(',').map((u) => u.trim());
+
+      const results = await Promise.all(
+        usernames.map(async (user) => {
+          const { tweets, report, rawTweets } = await this.twitter.getTweets(user, cashtag);
+          return { user, tweets, report, rawTweets };
+        }),
       );
-      return { tweets, report };
+
+      return {
+        cashtag,
+        results,
+      };
     } catch (error) {
       throw new HttpException(
         {
