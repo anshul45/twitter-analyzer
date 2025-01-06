@@ -28,7 +28,7 @@ export class TwitterService {
   async getTweets(
     username: string,
     cashtag: string,
-  ): Promise<{ tweets: string[]; report: string }> {
+  ): Promise<{ tweets: string[]; report: string; rawTweets:unknown[]}> {
     if (username) {
       this.input.username = username;
     }
@@ -109,7 +109,8 @@ Technical Context
       return {
         tweets: filteredMessages.tweets,
         report: response.content as string,
-      };
+        rawTweets : this.allTwitts
+      }
     } catch (error) {
       console.error('Error fetching tweets:', error);
       throw new Error('Failed to fetch tweets.');
