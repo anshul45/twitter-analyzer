@@ -1,10 +1,12 @@
 import type { MetaFunction } from '@remix-run/node';
 import { useState } from 'react';
 import { getTweets, TwitterResponse } from '~/common/api.request';
-import { Tabs, Spin, message, Input, Button, Flex } from 'antd';
+import { Spin, message, Input, Button, Flex, Select,Space,DatePicker } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import Header from '~/components/Header';
+import OptionSelector from '~/components/ui/OptionSelector';
+import OriginalTweets from '~/components/OriginalTweets';
+import FilteredTweets from '~/components/FilteredTweets';
+import ResearchReport from '~/components/ResearchReport';
 
 export const meta: MetaFunction = () => {
   return [
@@ -14,21 +16,23 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
-  const [username, setUsername] = useState('');
+  const [usernames, setUsernames] = useState<string[]>([]);
   const [cashtag, setCashtag] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TwitterResponse | null>(null);
   const [activeTab, setActiveTab] = useState('tweets');
+  const [options,setOptions] = useState(["Original Tweets","Filtered Tweets","Research Report"])
+  const [selectedOption,setSelectedOption] = useState("Original Tweets")
 
   const handleSubmit = async () => {
-    if (!username || !cashtag) {
+    if (!usernames.length || !cashtag) {
       message.error('Please enter both username and cashtag');
       return;
     }
 
     setLoading(true);
     try {
-      const data = await getTweets(username, cashtag);
+      const data = await getTweets(usernames, cashtag);
       setResult(data);
       setActiveTab('tweets');
     } catch (error) {
@@ -38,76 +42,88 @@ export default function Index() {
     }
   };
 
+ 
+
+
   return (
-    <>
-      <Header />
-      <Flex className="px-10 h-[calc(100vh-48px)]">
-        <div className="mt-10 mb-5 flex-[0.3]">
-          <div>
-            <h1 className="mb-3 font-semibold">Enter Twitter Username</h1>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </div>
-          <div className="mt-10">
-            <h1 className="mb-3 font-semibold">Enter Cashtag</h1>
-            <Input
-              value={cashtag}
-              onChange={(e) => setCashtag(e.target.value)}
-            />
-          </div>
+    <div className='px-5 py-4'>
+      <div className='font-bold text-2xl'>Tweet Analysis</div>
+      <Flex className="mt-5" gap={30}>
+        <Space size='large' direction='vertical' className=" flex-[0.3] border-[1px] px-5 py-3 rounded-md">
+            <h1 className="font-semibold text-xl ">Submit Analysis</h1>
+            <div>
+            <h5 className='text-sm font-semibold'>Usernames</h5>
+            <Input.TextArea rows={3} placeholder='Enter usernames (one per line) ex:- user1,user2,user3 etc.'/>
+            </div>
+          
+            <div>
+            <h5 className='text-sm font-semibold'>Cashtag</h5>
+            <Input.TextArea rows={3} placeholder='Enter Cashtag ex:- $Uber'/>
+            </div>
           <Button
-            className="w-full mt-10"
+            className="w-full"
             type="primary"
+            variant='solid'
+            color='default'
             onClick={handleSubmit}
             disabled={loading}
           >
             {loading ? <Spin /> : 'Analyze Tweets'}
           </Button>
-        </div>
+        </Space>
 
-        <div className="flex-[0.7] p-10">
-          {loading ? (
+        <div className="flex-[0.7]">
+          {false ? (
             <Flex justify="center" align="center" className="h-full">
               <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
             </Flex>
-          ) : result ? (
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              items={[
-                {
-                  key: 'tweets',
-                  label: 'Tweets',
-                  children: (
-                    <div className="overflow-y-auto max-h-[70vh]">
-                      {result?.tweets?.map((tweet, index) => (
-                        <div key={index} className="my-2 p-2 bg-gray-50 rounded">
-                          {tweet}
-                        </div>
-                      ))}
-                    </div>
-                  ),
-                },
-                {
-                  key: 'report',
-                  label: 'Analysis Report',
-                  children: (
-                    <div className="prose max-w-full overflow-y-auto max-h-[70vh]">
-                      <ReactMarkdown>{result.report}</ReactMarkdown>
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          ) : (
-            <Flex justify="center" align="center" className="h-full">
-              <h1 className="font-semibold text-lg">No Data...</h1>
-            </Flex>
-          )}
+          ) :(
+           <div className='border-[1px] h-full rounded-md px-5 py-3'>
+             <h1 className="font-semibold text-xl mb-5">Filters</h1>
+             <Flex gap={50}>
+             <div>
+            <h5 className='text-sm font-semibold'>Filter By Date</h5>
+            <DatePicker  />
+            </div>
+            <div className='w-full'>
+            <h5 className='text-sm font-semibold'>Filter By Username</h5>
+            <Select
+            placeholder="Select user"
+            options={[
+      {
+        value: 'jack',
+        label: 'Jack',
+      },
+      {
+        value: 'lucy',
+        label: 'Lucy',
+      },
+      {
+        value: 'tom',
+        label: 'Tom',
+      },
+    ]}/>
+            </div>
+             </Flex>
+           </div>
+          ) 
+        } 
         </div>
       </Flex>
-    </>
+      <div className='my-5'>
+      <OptionSelector options={options} selectedOption={selectedOption} setSelectedOption={setSelectedOption}/>
+      </div>
+      {
+        selectedOption == "Original Tweets" 
+        ? <OriginalTweets/> 
+        :  selectedOption == "Filtered Tweets" 
+        ? <FilteredTweets/>
+        :<ResearchReport/>
+      }
+    </div>
+    
   );
 }
+
+
+

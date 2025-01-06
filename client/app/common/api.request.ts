@@ -5,7 +5,7 @@ export interface TwitterResponse {
   report: string;
 }
 
-export const getTweets = async (username: string, cashtag: string): Promise<TwitterResponse> => {
+export const getTweets = async (usernames: string[], cashtag: string): Promise<TwitterResponse> => {
   try {
     const response = await axios.get(
       `process.env.SERVER_URL/twitter?username=${username}&cashtag=${cashtag}`
