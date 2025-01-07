@@ -15,10 +15,14 @@ model Tweet {
   text        String
   createdAt   String
   username    String
+  cashtags    Json   @db.Json
+  qualityScore Float?
+  type        String?
   user        User     @relation(fields: [userId], references: [id])
   userId      String
   tweetDate   TweetDate @relation(fields: [tweetDateId], references: [id])
   tweetDateId String
+  report      String?
 }
 
 model TweetDate {

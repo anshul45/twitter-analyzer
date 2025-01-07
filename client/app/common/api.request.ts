@@ -6,7 +6,7 @@ export interface TwitterResponse {
   rawTweets:string[]
 }
 
-export const getTweets = async (username: string, cashtag: string): Promise<TwitterResponse> => {
+export const getTweets = async (cashtag: string): Promise<TwitterResponse> => {
   // const serverUrl = window.ENV.SERVER_URL;
   // if (!serverUrl) {
   //   throw new Error('SERVER_URL is not defined in the environment variables');
@@ -14,7 +14,7 @@ export const getTweets = async (username: string, cashtag: string): Promise<Twit
 
   try {
     const response = await axios.get(
-      `http://localhost:3000/twitter?username=${username}&cashtag=${cashtag}`
+      `http://localhost:8000/twitter/cashtag?cashtag=${cashtag}`
     );
 
     console.log(response.data)

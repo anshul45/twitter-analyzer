@@ -25,13 +25,13 @@ export default function Index() {
   const [result, setResult] = useState<TwitterResponse>();
 
   const handleSubmit = async () => {
-    if (!username || !cashtag.trim()) {
+    if (!cashtag.trim()) {
       message.error('Please enter both usernames and a cashtag.');
       return;
     }
     setLoading(true);
     try {
-      const data = await getTweets(username, cashtag);
+      const data = await getTweets(cashtag);
       if(data){
         setResult(data);
       }
@@ -43,14 +43,6 @@ export default function Index() {
     }
   };
 
-  const handleChange = (value: string) => {
-    if(value == undefined)
-    {
-      setUsername("")
-    }
-    setUsername(value)
-  }
-
 
 
 
@@ -60,7 +52,7 @@ export default function Index() {
       <Flex gap={20} className='mt-10'>
       <Space size='large' direction='vertical' className=" flex-[0.2] border-[1px] px-5 py-3 rounded-md bg-gray-50">
         <h1 className="font-semibold text-xl ">Get Analysis</h1>
-        <div>
+        {/* <div>
           <h5 className='text-sm font-semibold'>Select User</h5>
           <Select
             allowClear
@@ -81,7 +73,7 @@ export default function Index() {
               { value: "unusual_whales", label: "unusual_whales" }
             ]}
             />
-        </div>
+        </div> */}
 
         <div>
           <h5 className='text-sm font-semibold'>Cashtag</h5>
