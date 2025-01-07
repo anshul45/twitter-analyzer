@@ -1,9 +1,9 @@
 import { MetaFunction } from '@remix-run/node';
-import { useEffect, useState } from 'react';
-import { getRawTweets } from '~/common/api.request';
-import { Input, Flex, Select, Space, DatePicker } from 'antd';
+import { useState } from 'react';
+import { getTweets } from '~/common/api.request';
+import { Input, Flex, Select, Space, DatePicker, Button, message, Drawer } from 'antd';
 import CustomTable from '~/components/Table';
-import { useLoaderData } from '@remix-run/react';
+import ReportDrawer from '~/components/ReportDrawer';
 import dayjs from 'dayjs';
 
 export const meta: MetaFunction = () => {
@@ -14,6 +14,8 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
+  const [cashtag, setCashtag] = useState<string>('');
+  const [open, setOpen] = useState<boolean>(false);
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [filters, setFilters] = useState({
@@ -22,64 +24,71 @@ export default function Index() {
     cashtag: '',
   });
 
-  const tweets = useLoaderData();
+  const handleSubmit = async (date: string, cashtag: string) => {
+    const response = await getTweets(cashtag, date);
+    setData(response.tweets[0].tweets);
+    setFilteredData(response.tweets[0].tweets); // Initialize filtered data with all tweets
+  };
 
-  const allTweets = tweets?.tweets?.flatMap((entry) =>
-    entry.tweets.map((tweet) => ({
-      cashtags: tweet.cashtags,
-      text: tweet.text,
-      createdAt: tweet.createdAt,
-      username: tweet.username,
-    }))
-  );
+  const handleClick = () => {
+    if (!cashtag) {
+      message.error("Please enter a cashtag.");
+      return;
+    }
+    handleSubmit('', cashtag);
+  };
 
-  useEffect(() => {
-    setData(allTweets);
-    setFilteredData(allTweets);
-  }, []);
+  const handleReportClick = () => {
+    if (!cashtag) {
+      message.error("Please enter a cashtag.");
+      return;
+    }
+    setOpen(true);
+  };
 
-  // Handle filter changes
-  const handleFilterChange = (key, value) => {
+  const handleFilterChange = (key: string, value: any) => {
     // Set the filter
     setFilters((prev) => ({ ...prev, [key]: value }));
-  
-    let filtered = [...allTweets]; // Start with all tweets
-  
+
+    let filtered = [...data]; // Start with all tweets
+
     // Apply the selected filter condition
     if (key === 'username') {
-      console.log(value)
-      filtered = allTweets.filter((tweet) =>
+      filtered = data.filter((tweet) =>
         value === 'All' || tweet.username === value
       );
     } else if (key === 'date') {
-      filtered = allTweets.filter((tweet) =>
+      filtered = data.filter((tweet) =>
         !value || dayjs(tweet.createdAt).isSame(value, 'day')
       );
     } else if (key === 'cashtag') {
-      filtered = allTweets.filter((tweet) =>
+      filtered = data.filter((tweet) =>
         !value || tweet.cashtags.some((tag) => tag.toLowerCase().includes(value.toLowerCase()))
       );
     }
-  
-    // Update the filtered data
-    setFilteredData(filtered);
-  };
-  
 
-  // Get unique usernames for the username filter dropdown
-  const uniqueUsernames = [...new Set(allTweets?.map((tweet) => tweet.username))];
+    // Update the filtered data
+    setFilteredData(filtered); // Set the filtered data
+  };
+
+  const uniqueUsernames = [...new Set(data?.map((tweet) => tweet.username))];
 
   return (
     <>
       <div className="px-5 py-2">
         <Flex gap={100}>
           <div>
-            <div className="font-bold text-2xl mb-2">Filter Tweets</div>
+            <div className="font-bold text-2xl mb-2">Get Tweets</div>
             <Space size={20}>
               <div>
                 <h1 className="font-semibold text-sm">Date</h1>
                 <DatePicker
-                  onChange={(date) => handleFilterChange('date', date ? date.toISOString() : null)}
+                  onChange={(date) => {
+                    if (date) {
+                      const formattedDate = dayjs(date).format('ddd MMM DD YYYY');
+                      handleSubmit(formattedDate, '');
+                    }
+                  }}
                 />
               </div>
               <div>
@@ -102,8 +111,16 @@ export default function Index() {
                 <Flex gap={2}>
                   <Input
                     placeholder="Search cashtag"
-                    onChange={(e) => handleFilterChange('cashtag', e.target.value)}
+                    value={cashtag}
+                    onChange={(e) => setCashtag(e.target.value)}
                   />
+                  <Button onClick={handleClick}>Search</Button>
+                </Flex>
+              </div>
+              <div>
+                <h1 className="font-semibold text-sm">Get Report</h1>
+                <Flex gap={2}>
+                  <Button onClick={handleReportClick}>Get Report</Button>
                 </Flex>
               </div>
             </Space>
@@ -113,11 +130,7 @@ export default function Index() {
           <CustomTable tweets={filteredData} />
         </div>
       </div>
+      <ReportDrawer open={open} cashtag={cashtag} setOpen={setOpen} />
     </>
   );
-}
-
-export async function loader() {
-  const res = await getRawTweets();
-  return res;
 }
