@@ -3,27 +3,39 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Post,
   Query,
 } from '@nestjs/common';
 import { TwitterService } from './twitter.service';
 
 @Controller('twitter')
 export class TwitterController {
-  constructor(private readonly twitter: TwitterService) {}
+  constructor(private readonly twitter: TwitterService) { }
 
-  @Get()
+  @Post()
+  async addText() {
+    const usernames = ["pakpakchicken", "fundstrat", "BourbonCap", "ripster47", "Micro2Macr0", "LogicalThesis", "RichardMoglen", "Couch_Investor", "StockMarketNerd", "MCins_", "unusual_whales"]
+    await Promise.all(
+      usernames.map(async (user) => {
+        try {
+          await this.twitter.savetoDB(user);
+          console.log(`Successfully added user: ${user}`);
+        } catch (error) {
+          console.error(`Error adding user ${user}:`, error.message);
+        }
+      })
+    )
+  }
+
+  @Get("cashtag")
   async processText(
-    @Query('username') username: string,
     @Query('cashtag') cashtag: string,
   ) {
     try {
       console.log('processing text');
-      console.log(username, cashtag);
-      const { tweets, report } = await this.twitter.getTweets(
-        username,
-        cashtag,
-      );
-      return { tweets, report };
+      // const { tweets, report, rawTweets } = 
+      await this.twitter.getAnalysis(cashtag);
+      // return { tweets, report, rawTweets };
     } catch (error) {
       throw new HttpException(
         {

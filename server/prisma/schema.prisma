@@ -1,0 +1,34 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+
+model Tweet {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  tweetId     String   @unique
+  text        String
+  createdAt   String
+  username    String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  tweetDate   TweetDate @relation(fields: [tweetDateId], references: [id])
+  tweetDateId String
+}
+
+model TweetDate {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  date        String   @unique
+  tweets      Tweet[]
+}
+
+model User {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  username    String   @unique
+  tweets      Tweet[]
+}

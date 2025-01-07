@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { ActorRun, ApifyClient } from 'apify-client';
 import { OpenAIWrapper } from 'src/modules/openai/openai.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { DateUtil } from 'src/common/utils/format.date.utils';
+import { json } from 'stream/consumers';
+import { FormatTweets } from 'src/common/utils/format.tweets.utils';
 dotenv.config();
 
 interface InputData {
@@ -9,45 +13,73 @@ interface InputData {
   max_posts: number;
 }
 
+interface allTweetsData{
+  tweetId:string;
+  text:string;
+  createdAt:string
+  username:string
+  date:string
+}
+
 @Injectable()
 export class TwitterService {
   private client: ApifyClient;
   private input: InputData;
   private tweets: Record<string | number, unknown>[];
-  private allTwitts: unknown[];
+  private allTweets: allTweetsData[];
+ 
 
-  constructor(private readonly openAiService: OpenAIWrapper) {
+  constructor(private readonly openAiService: OpenAIWrapper, private prismaService: PrismaService) {
     const apiKey = process.env.APIFY_API_KEY;
     if (!apiKey) {
       throw new Error('Apify API key is required. Set it in environment.');
     }
     this.client = new ApifyClient({ token: apiKey });
     this.input = { username: '', max_posts: 50 };
+
   }
-
-  async getTweets(
-    username: string,
+  async getAnalysis(
     cashtag: string,
-  ): Promise<{ tweets: string[]; report: string }> {
-    if (username) {
-      this.input.username = username;
-    }
-
+  ): Promise<void> {
+  //{ tweets: string[]; report: string; rawTweets: unknown[] }
     try {
-      const run: ActorRun = await this.client
-        .actor('SfyC2ifoAKkAUvjTt')
-        .call(this.input);
-      const { items } = await this.client
-        .dataset(run.defaultDatasetId)
-        .listItems();
-      if (items) {
-        this.tweets = items;
-      }
+      const days = DateUtil.getDatesForLastThreeDays()
+      const data = await this.prismaService.tweetDate.findMany({
+        where:{
+          date:{
+            in:days
+          }
+        },
+        include:{
+          tweets:{
+            include:{
+              user:true
+            }
+          }
+        }
+      });
+      
 
-      this.allTwitts = this.tweets.map((tweet) => tweet.text);
+
+      const allTweets = await this.prismaService.tweetDate.findMany({
+        where:{
+          date: DateUtil.getCurrentDate()
+        },
+        include:{
+          tweets:{
+            include:{
+              user:true
+            }
+          }
+        }
+      })
+
+      const tweetsText = FormatTweets.groupedTweets(allTweets)
+
 
       // Filter all tweets at once
-      const filterPrompt = `Here are some tweets:\n\n${this.allTwitts.join('\n-----------------')}\n\nPlease return a JSON format containing only the tweets relevant to ${cashtag}. Each tweet should be a string in the list.`;
+    
+      const filterPrompt = `Here are some tweets:\n\n${this.allTweets.join('\n-----------------')}\n\nPlease return a JSON format containing only the tweets relevant to ${cashtag}. Each tweet should be a string in the list.`;
 
       const filteredResponse = await this.openAiService.generateResponse(
         filterPrompt,
@@ -70,49 +102,124 @@ export class TwitterService {
 
       const filteredMessages: any = filteredResponse.content;
 
-      const response = await this.openAiService.generateResponse(
-        filteredMessages?.tweets?.join('\n'),
-        `Please analyze these cashtag-related (${cashtag}) tweets and provide a detailed report covering:
 
-1. Market Sentiment & Trading Activity
-- Overall market sentiment (bullish/bearish signals)
-- Trading patterns and strategies mentioned
-- Common price targets or predictions
-- Risk assessments and warnings
+//       const response = await this.openAiService.generateResponse(
+//         filteredMessages?.tweets?.join('\n'),
+//         `Please analyze these cashtag-related (${cashtag}) tweets and provide a detailed report covering:
 
-2. Symbol Analysis
-- Most frequently discussed cashtags
-- Correlations between different symbols
-- How sentiment varies across different assets
-- Emerging or trending symbols
+// 1. Market Sentiment & Trading Activity
+// - Overall market sentiment (bullish/bearish signals)
+// - Trading patterns and strategies mentioned
+// - Common price targets or predictions
+// - Risk assessments and warnings
 
-3. Information Sources & Credibility
-- Types of analysis being shared (technical, fundamental, news-based)
-- Quality of supporting evidence provided
-- Common information sources cited
-- Presence of potential misinformation or pump-and-dump patterns
+// 2. Symbol Analysis
+// - Most frequently discussed cashtags
+// - Correlations between different symbols
+// - How sentiment varies across different assets
+// - Emerging or trending symbols
 
-4. Community Dynamics
-- Key influencers and their impact
-- Common discussion patterns
-- How news events affect conversation
-- Popular trading theories or strategies
+// 3. Information Sources & Credibility
+// - Types of analysis being shared (technical, fundamental, news-based)
+// - Quality of supporting evidence provided
+// - Common information sources cited
+// - Presence of potential misinformation or pump-and-dump patterns
+
+// 4. Community Dynamics
+// - Key influencers and their impact
+// - Common discussion patterns
+// - How news events affect conversation
+// - Popular trading theories or strategies
 
 
-Technical Context
-- Trading indicators frequently referenced
-- Chart patterns being discussed
-- Time frames most commonly analyzed
-- Risk management approaches mentioned`,
-      );
+// Technical Context
+// - Trading indicators frequently referenced
+// - Chart patterns being discussed
+// - Time frames most commonly analyzed
+// - Risk management approaches mentioned`,
+//       );
 
-      return {
-        tweets: filteredMessages.tweets,
-        report: response.content as string,
-      };
+      // return {
+      //   tweets: filteredMessages.tweets,
+      //   report: response.content as string,
+      //   rawTweets: this.allTweets
+      // }
     } catch (error) {
       console.error('Error fetching tweets:', error);
       throw new Error('Failed to fetch tweets.');
+    }
+  }
+
+  
+
+  async savetoDB(username: string): Promise<void> {
+    try {
+      this.input.username = username
+      const run: ActorRun = await this.client
+        .actor('SfyC2ifoAKkAUvjTt')
+        .call(this.input);
+
+      const { items } = await this.client
+        .dataset(run.defaultDatasetId)
+        .listItems();
+
+      if (!items.length) {
+        console.log(`No tweets found for username: ${username}`);
+        return;
+      }
+
+      const extractedTweets = items.map((tweet:any):{tweetId:string,createdAt:string,text:string,username:string} => ({
+        tweetId: tweet.tweet_id,
+        createdAt: DateUtil.dateOutput(tweet.created_at.toString()),
+        text: tweet.text,
+        username:username
+      }));
+
+      const uniqueDates = [...new Set(extractedTweets.map(tweet => tweet.createdAt))];
+
+      let user = await this.prismaService.user.findUnique({
+        where: { username: username },
+         })
+    
+      if (!user) {
+        user = await this.prismaService.user.create({
+          data: { username: username },
+        });
+      }
+      
+      for (const date of uniqueDates) {
+        const tweetsForDate = extractedTweets.filter(tweet => tweet.createdAt === date);
+  
+        let tweetDate = await this.prismaService.tweetDate.findUnique({
+          where: { date },
+        });
+  
+        if (!tweetDate) {
+          tweetDate = await this.prismaService.tweetDate.create({
+            data: { date },
+          });
+        }
+  
+        for (const tweet of tweetsForDate) {
+          await this.prismaService.tweet.upsert({
+            where: { tweetId: tweet.tweetId },
+            update: {},
+            create: {
+              tweetId: tweet.tweetId,
+              text: tweet.text,
+              createdAt: tweet.createdAt,
+              username: tweet.username,
+              user: { connect: { id: user.id } },
+              tweetDate: { connect: { id: tweetDate.id } },
+            },
+          });
+        }
+      }
+
+      console.log(`Tweets successfully saved for username: ${username}`);
+    } catch (error) {
+      console.error('Error saving tweets:', error);
+      throw new Error('Failed to save tweets.');
     }
   }
 }
