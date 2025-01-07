@@ -51,15 +51,10 @@ export class TwitterService {
         ? [options.date]
         : DateUtil.getDatesForLastThreeDays();
 
-      const allUserTweets = await this.prismaService.tweets.findMany({
+      const allUserTweets = await this.prismaService.tweetDate.findMany({
         where: {
           date: {
             in: days,
-          },
-          cashtags: {
-            in: {
-              cashtag: cashtag,
-            },
           },
         },
         include: {
@@ -70,6 +65,22 @@ export class TwitterService {
           },
         },
       });
+
+      const filteredTweets = allUserTweets
+        .map((user) => {
+          const matchingTweets = user.tweets.filter((tweet) => {
+            return (
+              Array.isArray(tweet.cashtags) &&
+              tweet.cashtags.includes(cashtag.toUpperCase())
+            );
+          });
+
+          return {
+            ...user,
+            tweets: matchingTweets,
+          };
+        })
+        .filter((user) => user.tweets.length > 0);
 
       // const oneDayTweets = await this.prismaService.tweetDate.findMany({
       //   where: {
@@ -89,7 +100,7 @@ export class TwitterService {
       //   },
       // });
 
-      const tweetsText = FormatTweets.groupedTweets(allUserTweets);
+      const tweetsText = FormatTweets.groupedTweets(filteredTweets);
 
       // // Filter all tweets at once
 
@@ -127,7 +138,7 @@ export class TwitterService {
           },
         });
 
-        await this.prismaService.tweets.update({
+        await this.prismaService.tweet.update({
           where: { id: tweetDate.id },
           data: { report: report },
         });
