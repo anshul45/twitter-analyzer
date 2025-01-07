@@ -100,7 +100,14 @@ export class TwitterService {
       //   },
       // });
 
-      const tweetsText = FormatTweets.groupedTweets(filteredTweets);
+      let tweetsText = FormatTweets.groupedTweets(filteredTweets);
+
+      // filter tweets by username
+      if (options.username) {
+        tweetsText = tweetsText.filter(
+          (user) => user.username === options.username,
+        );
+      }
 
       // // Filter all tweets at once
 
@@ -132,14 +139,8 @@ export class TwitterService {
       if (options.date) {
         report = await this.getReport(tweetsText, cashtag);
 
-        const tweetDate = await this.prismaService.tweetDate.findUnique({
-          where: {
-            date: options.date,
-          },
-        });
-
-        await this.prismaService.tweet.update({
-          where: { id: tweetDate.id },
+        await this.prismaService.tweetDate.update({
+          where: { date: options.date },
           data: { report: report },
         });
       }
@@ -154,7 +155,7 @@ export class TwitterService {
     }
   }
 
-  async getReport(cashtag: string, tweetsText: any): Promise<string> {
+  async getReport(tweetsText: any, cashtag: string): Promise<string> {
     const response = await this.openAiService.generateResponse(
       await this.formatUserTweetsToMarkdown(tweetsText),
       `Please analyze these cashtag-related (${cashtag}) tweets by given username and provide a detailed report covering below topics.
@@ -302,7 +303,6 @@ export class TwitterService {
               tweetDate: { connect: { id: tweetDate.id } },
               cashtags: cashtags['cashtags'] || { set: [] },
               qualityScore: cashtags['qualityScore'] || 0,
-              report: '',
             },
           });
         }

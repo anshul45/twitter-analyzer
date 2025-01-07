@@ -40,12 +40,18 @@ export class TwitterController {
   }
 
   @Get('cashtag')
-  async processText(@Query('cashtag') cashtag: string) {
+  async processText(
+    @Query('cashtag') cashtag: string,
+    @Query('date') date?: string,
+    @Query('username') username?: string,
+  ) {
     try {
       console.log('processing text');
-      // const { tweets, report, rawTweets } =
-      await this.twitter.getAnalysis(cashtag);
-      // return { tweets, report, rawTweets };
+      const { tweets, report } = await this.twitter.getAnalysis(cashtag, {
+        date,
+        username,
+      });
+      return { tweets, report };
     } catch (error) {
       throw new HttpException(
         {

@@ -22,13 +22,13 @@ model Tweet {
   userId      String
   tweetDate   TweetDate @relation(fields: [tweetDateId], references: [id])
   tweetDateId String
-  report      String?
 }
 
 model TweetDate {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   date        String   @unique
   tweets      Tweet[]
+  report      String?
 }
 
 model User {
