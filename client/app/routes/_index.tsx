@@ -6,6 +6,21 @@ import CustomTable from '~/components/Table';
 import { useLoaderData } from '@remix-run/react';
 import dayjs from 'dayjs';
 
+interface Tweet {
+  cashtags: string[];
+  text: string;
+  createdAt: string;
+  username: string;
+  tweetId: string;
+  qualityScore: number;
+}
+
+interface Filters {
+  date: string | null;
+  username: string;
+  cashtag: string;
+}
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'Twitter Scrapper' },
@@ -14,15 +29,16 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [data, setData] = useState<Tweet[]>([]);
+  const [filteredData, setFilteredData] = useState<Tweet[]>([]);
   const [filters, setFilters] = useState({
     date: null,
     username: 'All',
     cashtag: '',
   });
+  
 
-  const tweets = useLoaderData();
+  const tweets =  useLoaderData<{ tweets: { tweets: Tweet[] }[] }>();
 
   const allTweets = tweets?.tweets?.flatMap((entry) =>
     entry.tweets.map((tweet) => ({
@@ -39,9 +55,11 @@ export default function Index() {
     setData(allTweets);
     setFilteredData(allTweets);
   }, []);
+  
+
 
   // Handle filter changes
-  const handleFilterChange = (key, value) => {
+  const handleFilterChange = (key: keyof Filters, value: string | null) => {
     // Set the filter
     setFilters((prev) => ({ ...prev, [key]: value }));
   
@@ -69,7 +87,7 @@ export default function Index() {
   
 
   // Get unique usernames for the username filter dropdown
-  const uniqueUsernames = [...new Set(allTweets?.map((tweet) => tweet.username))];
+  const uniqueUsernames:string[] = [...new Set(allTweets?.map((tweet :any) => tweet.username))];
 
   return (
     <>
@@ -91,7 +109,7 @@ export default function Index() {
                   style={{ width: 200 }}
                 >
                   <Select.Option value="All">All</Select.Option>
-                  {uniqueUsernames.map((username) => (
+                  {uniqueUsernames?.map((username) => (
                     <Select.Option key={username} value={username}>
                       {username}
                     </Select.Option>

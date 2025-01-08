@@ -27,11 +27,10 @@ export const getTweets = async (cashtag: string, date: string): Promise<any> => 
   }
 };
 
-export const generateReport = async (date: string): Promise<void> => {
+export const generateReport = async (date: string,cashtag:string): Promise<void> => {
   try {
     await axios.post(
-      `http://localhost:8000/twitter/report`,
-      { date: date.trim() }
+      `http://localhost:8000/twitter/report?date=${date}&cashtag=${cashtag}`,
     );
   } catch (error) {
     if (axios.isAxiosError(error)) {
