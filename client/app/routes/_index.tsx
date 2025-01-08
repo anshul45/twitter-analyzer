@@ -30,6 +30,8 @@ export default function Index() {
       text: tweet.text,
       createdAt: tweet.createdAt,
       username: tweet.username,
+      tweetId: tweet.tweetId,
+      qualityScore: tweet.qualityScore
     }))
   );
 
@@ -74,7 +76,6 @@ export default function Index() {
       <div className="px-5 py-2">
         <Flex gap={100}>
           <div>
-            <div className="font-bold text-2xl mb-2">Filter Tweets</div>
             <Space size={20}>
               <div>
                 <h1 className="font-semibold text-sm">Date</h1>

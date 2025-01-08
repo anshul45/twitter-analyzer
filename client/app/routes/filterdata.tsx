@@ -1,10 +1,11 @@
 import { MetaFunction } from '@remix-run/node';
-import { useState } from 'react';
-import { getTweets } from '~/common/api.request';
-import { Input, Flex, Select, Space, DatePicker, Button, message, Drawer } from 'antd';
-import CustomTable from '~/components/Table';
-import ReportDrawer from '~/components/ReportDrawer';
+import { useState, useEffect } from 'react';
+// eslint-disable-next-line import/no-unresolved
+import { generateReport, getReports } from '~/common/api.request';
+import { Flex, DatePicker, Button, message, Table } from 'antd';
+// eslint-disable-next-line import/no-unresolved
 import dayjs from 'dayjs';
+import type { ColumnsType } from 'antd/es/table';
 
 export const meta: MetaFunction = () => {
   return [
@@ -13,124 +14,99 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export default function Index() {
-  const [cashtag, setCashtag] = useState<string>('');
-  const [open, setOpen] = useState<boolean>(false);
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [filters, setFilters] = useState({
-    date: null,
-    username: 'All',
-    cashtag: '',
-  });
+interface DailyReport {
+  date: string;
+  report: string;
+}
 
-  const handleSubmit = async (date: string, cashtag: string) => {
-    const response = await getTweets(cashtag, date);
-    setData(response.tweets[0].tweets);
-    setFilteredData(response.tweets[0].tweets); // Initialize filtered data with all tweets
-  };
+export default function GenerateReport() {
+  const [date, setDate] = useState<dayjs.Dayjs | null>(null);
+  const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
-  const handleClick = () => {
-    if (!cashtag) {
-      message.error("Please enter a cashtag.");
+  useEffect(() => {
+    const fetchReports = async () => {
+      setLoading(true);
+      try {
+        const response = await getReports();
+        setDailyReports(response);
+      } catch (error) {
+        message.error("Failed to fetch reports");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchReports();
+  }, []);
+
+  const handleGenerateReport = async () => {
+    if (!date) {
+      message.error("Please select a date");
       return;
     }
-    handleSubmit('', cashtag);
-  };
 
-  const handleReportClick = () => {
-    if (!cashtag) {
-      message.error("Please enter a cashtag.");
-      return;
+    setGenerating(true);
+    try {
+      const formattedDate = date.format('YYYY-MM-DD');
+      await generateReport(formattedDate);
+      message.success("Report generation started");
+      
+      // Refresh reports after generation
+      const response = await getReports();
+      setDailyReports(response);
+    } catch (error) {
+      message.error("Failed to generate report");
+    } finally {
+      setGenerating(false);
     }
-    setOpen(true);
   };
 
-  const handleFilterChange = (key: string, value: any) => {
-    // Set the filter
-    setFilters((prev) => ({ ...prev, [key]: value }));
-
-    let filtered = [...data]; // Start with all tweets
-
-    // Apply the selected filter condition
-    if (key === 'username') {
-      filtered = data.filter((tweet) =>
-        value === 'All' || tweet.username === value
-      );
-    } else if (key === 'date') {
-      filtered = data.filter((tweet) =>
-        !value || dayjs(tweet.createdAt).isSame(value, 'day')
-      );
-    } else if (key === 'cashtag') {
-      filtered = data.filter((tweet) =>
-        !value || tweet.cashtags.some((tag) => tag.toLowerCase().includes(value.toLowerCase()))
-      );
+  const dailyReportColumns: ColumnsType<DailyReport> = [
+    {
+      title: 'Date',
+      dataIndex: 'date',
+      key: 'date',
+    },
+    {
+      title: 'Report',
+      dataIndex: 'report',
+      key: 'report',
+      render: (text) => <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>
     }
-
-    // Update the filtered data
-    setFilteredData(filtered); // Set the filtered data
-  };
-
-  const uniqueUsernames = [...new Set(data?.map((tweet) => tweet.username))];
+  ];
 
   return (
-    <>
-      <div className="px-5 py-2">
-        <Flex gap={100}>
-          <div>
-            <div className="font-bold text-2xl mb-2">Get Tweets</div>
-            <Space size={20}>
-              <div>
-                <h1 className="font-semibold text-sm">Date</h1>
-                <DatePicker
-                  onChange={(date) => {
-                    if (date) {
-                      const formattedDate = dayjs(date).format('ddd MMM DD YYYY');
-                      handleSubmit(formattedDate, '');
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <h1 className="font-semibold text-sm">Username</h1>
-                <Select
-                  defaultValue="All"
-                  onChange={(value) => handleFilterChange('username', value)}
-                  style={{ width: 200 }}
-                >
-                  <Select.Option value="All">All</Select.Option>
-                  {uniqueUsernames.map((username) => (
-                    <Select.Option key={username} value={username}>
-                      {username}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <h1 className="font-semibold text-sm">Cashtag</h1>
-                <Flex gap={2}>
-                  <Input
-                    placeholder="Search cashtag"
-                    value={cashtag}
-                    onChange={(e) => setCashtag(e.target.value)}
-                  />
-                  <Button onClick={handleClick}>Search</Button>
-                </Flex>
-              </div>
-              <div>
-                <h1 className="font-semibold text-sm">Get Report</h1>
-                <Flex gap={2}>
-                  <Button onClick={handleReportClick}>Get Report</Button>
-                </Flex>
-              </div>
-            </Space>
-          </div>
-        </Flex>
-        <div className="mt-2">
-          <CustomTable tweets={filteredData} />
+    <div className="px-5 py-2">
+      <Flex gap={20} align="center">
+        <div>
+          <h1 className="font-semibold text-sm">Select Date</h1>
+          <DatePicker
+            onChange={(date) => setDate(date)}
+            style={{ width: 200 }}
+          />
         </div>
+        <Button 
+          type="primary" 
+          onClick={handleGenerateReport}
+          loading={generating}
+        >
+          Generate Report
+        </Button>
+      </Flex>
+      
+      <div className="mt-4">
+        <h2 className="text-xl font-bold mb-2">Daily Report</h2>
+        <Table
+          columns={dailyReportColumns}
+          dataSource={dailyReports}
+          loading={loading}
+          pagination={false}
+          bordered
+        />
       </div>
-      <ReportDrawer open={open} cashtag={cashtag} setOpen={setOpen} />
-    </>
+
+    </div>
   );
 }

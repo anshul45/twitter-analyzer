@@ -63,4 +63,21 @@ export class TwitterController {
       );
     }
   }
+
+  @Get('reports')
+  async getReports() {
+    try {
+      const reports = await this.twitter.getReports();
+      return reports;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: 'Error fetching reports',
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

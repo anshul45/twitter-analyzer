@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { Injectable } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { ActorRun, ApifyClient } from 'apify-client';
@@ -38,6 +39,24 @@ export class TwitterService {
     this.client = new ApifyClient({ token: apiKey });
     this.input = { username: '', max_posts: 50 };
   }
+  async getReports(): Promise<any> {
+    try {
+      const reports = await this.prismaService.tweetDate.findMany({
+        select: {
+          date: true,
+          report: true,
+        },
+        orderBy: {
+          date: 'desc',
+        },
+      });
+      return reports;
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      throw new Error('Failed to fetch reports.');
+    }
+  }
+
   async getAnalysis(
     cashtag: string,
     options = {
@@ -50,7 +69,6 @@ export class TwitterService {
       const days = options.date?.trim()
         ? [options.date]
         : DateUtil.getDatesForLastThreeDays();
-        
 
       const allUserTweets = await this.prismaService.tweetDate.findMany({
         where: {
@@ -67,26 +85,27 @@ export class TwitterService {
         },
       });
 
-      console.log(options.date)
+      console.log(options.date);
 
-      
       let filteredTweets;
-        cashtag ? filteredTweets = allUserTweets
-        .map((user) => {
-          const matchingTweets = user.tweets.filter((tweet) => {
-            return (
-              Array.isArray(tweet.cashtags) &&
-              tweet.cashtags.includes(cashtag.toUpperCase())
-            );
-          });
-          
-          return {
-            ...user,
-            tweets: matchingTweets,
-          };
-        })
-        .filter((user) => user.tweets.length > 0)
-      : filteredTweets = null;
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      cashtag
+        ? (filteredTweets = allUserTweets
+            .map((user: { tweets: any[] }) => {
+              const matchingTweets = user.tweets.filter((tweet) => {
+                return (
+                  Array.isArray(tweet.cashtags) &&
+                  tweet.cashtags.includes(cashtag.toUpperCase())
+                );
+              });
+
+              return {
+                ...user,
+                tweets: matchingTweets,
+              };
+            })
+            .filter((user) => user.tweets.length > 0))
+        : (filteredTweets = null);
 
       // const oneDayTweets = await this.prismaService.tweetDate.findMany({
       //   where: {
@@ -107,8 +126,8 @@ export class TwitterService {
       // });
 
       let tweetsText = null;
-      cashtag && (tweetsText = FormatTweets.groupedTweets(filteredTweets))
-      if(cashtag){
+      cashtag && (tweetsText = FormatTweets.groupedTweets(filteredTweets));
+      if (cashtag) {
         // filter tweets by username
         if (options.username) {
           tweetsText = tweetsText.filter(
@@ -144,20 +163,17 @@ export class TwitterService {
 
       // save report in db
       let report = null;
-      if (cashtag){
+      if (cashtag) {
         report = await this.getReport(tweetsText, cashtag);
       }
-        if (options.date) {
-
-          if(report){
-            await this.prismaService.tweetDate.update({
-              where: { date: options.date },
-              data: { report: report },
-            });
-          }
-          
-        } 
-      
+      if (options.date) {
+        if (report) {
+          await this.prismaService.tweetDate.update({
+            where: { date: options.date },
+            data: { report: report },
+          });
+        }
+      }
 
       return {
         tweets: cashtag ? tweetsText : allUserTweets,

@@ -11,7 +11,7 @@ const Navbar = () => {
           Home
         </Link>
         <Link to="/filterdata" className="cursor-pointer text-white">
-          Filter Data
+          Generate Report
         </Link>
       </Flex>
       <div></div>

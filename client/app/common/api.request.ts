@@ -1,20 +1,21 @@
 import axios from 'axios';
 
+export interface DailyReport {
+  date: string;
+  report: string;
+}
+
 export interface TwitterResponse {
   tweets: string[];
   report: string | null;
 }
 
-export const getTweets = async (cashtag: string,date:string): Promise<any> => {
-  // const serverUrl = window.ENV.SERVER_URL;
-  // if (!serverUrl) {
-  //   throw new Error('SERVER_URL is not defined in the environment variables');
-  // }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getTweets = async (cashtag: string, date: string): Promise<any> => {
   try {
     const response = await axios.get(
-      `http://localhost:3000/twitter/cashtag?cashtag=${cashtag}&date=${date.trim()}`
+      `http://localhost:8000/twitter/cashtag?cashtag=${cashtag}&date=${date.trim()}`
     );
-
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -26,12 +27,42 @@ export const getTweets = async (cashtag: string,date:string): Promise<any> => {
   }
 };
 
+export const generateReport = async (date: string): Promise<void> => {
+  try {
+    await axios.post(
+      `http://localhost:8000/twitter/report`,
+      { date: date.trim() }
+    );
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error generating report:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error generating report:', error);
+    }
+    throw error;
+  }
+};
 
-export const getRawTweets = async (): Promise<TwitterResponse> => {
-
+export const getReports = async (): Promise<DailyReport[]> => {
   try {
     const response = await axios.get(
-      `http://localhost:3000/twitter/cashtag`
+      `http://localhost:8000/twitter/reports`
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching reports:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error fetching reports:', error);
+    }
+    throw error;
+  }
+};
+
+export const getRawTweets = async (): Promise<TwitterResponse> => {
+  try {
+    const response = await axios.get(
+      `http://localhost:8000/twitter/cashtag`
     );
     return response.data;
   } catch (error) {
