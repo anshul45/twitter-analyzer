@@ -164,7 +164,7 @@ export class TwitterService {
       // save report in db
       let report = null;
       if (cashtag) {
-        report = await this.getReport(tweetsText, cashtag);
+        report = await this.generateReport(tweetsText, cashtag);
       }
       if (options.date) {
         if (report) {
@@ -185,7 +185,7 @@ export class TwitterService {
     }
   }
 
-  async getReport(tweetsText: any, cashtag: string): Promise<string> {
+  async generateReport(tweetsText: any, cashtag: string): Promise<string> {
     const response = await this.openAiService.generateResponse(
       await this.formatUserTweetsToMarkdown(tweetsText),
       `Please analyze these cashtag-related (${cashtag}) tweets by given username and provide a detailed report covering below topics.
