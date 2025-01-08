@@ -47,9 +47,10 @@ export class TwitterService {
   ): Promise<any> {
     //{ tweets: string[]; report: string; rawTweets: unknown[] }
     try {
-      const days = options.date
+      const days = options.date?.trim()
         ? [options.date]
         : DateUtil.getDatesForLastThreeDays();
+        
 
       const allUserTweets = await this.prismaService.tweetDate.findMany({
         where: {
@@ -66,7 +67,11 @@ export class TwitterService {
         },
       });
 
-      const filteredTweets = allUserTweets
+      console.log(options.date)
+
+      
+      let filteredTweets;
+        cashtag ? filteredTweets = allUserTweets
         .map((user) => {
           const matchingTweets = user.tweets.filter((tweet) => {
             return (
@@ -74,13 +79,14 @@ export class TwitterService {
               tweet.cashtags.includes(cashtag.toUpperCase())
             );
           });
-
+          
           return {
             ...user,
             tweets: matchingTweets,
           };
         })
-        .filter((user) => user.tweets.length > 0);
+        .filter((user) => user.tweets.length > 0)
+      : filteredTweets = null;
 
       // const oneDayTweets = await this.prismaService.tweetDate.findMany({
       //   where: {
@@ -100,13 +106,15 @@ export class TwitterService {
       //   },
       // });
 
-      let tweetsText = FormatTweets.groupedTweets(filteredTweets);
-
-      // filter tweets by username
-      if (options.username) {
-        tweetsText = tweetsText.filter(
-          (user) => user.username === options.username,
-        );
+      let tweetsText = null;
+      cashtag && (tweetsText = FormatTweets.groupedTweets(filteredTweets))
+      if(cashtag){
+        // filter tweets by username
+        if (options.username) {
+          tweetsText = tweetsText.filter(
+            (user) => user.username === options.username,
+          );
+        }
       }
 
       // // Filter all tweets at once
@@ -136,17 +144,23 @@ export class TwitterService {
 
       // save report in db
       let report = null;
-      if (options.date) {
+      if (cashtag){
         report = await this.getReport(tweetsText, cashtag);
-
-        await this.prismaService.tweetDate.update({
-          where: { date: options.date },
-          data: { report: report },
-        });
       }
+        if (options.date) {
+
+          if(report){
+            await this.prismaService.tweetDate.update({
+              where: { date: options.date },
+              data: { report: report },
+            });
+          }
+          
+        } 
+      
 
       return {
-        tweets: tweetsText,
+        tweets: cashtag ? tweetsText : allUserTweets,
         report: report,
       };
     } catch (error) {

@@ -41,7 +41,7 @@ export class TwitterController {
 
   @Get('cashtag')
   async processText(
-    @Query('cashtag') cashtag: string,
+    @Query('cashtag') cashtag?: string,
     @Query('date') date?: string,
     @Query('username') username?: string,
   ) {
