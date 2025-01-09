@@ -9,7 +9,8 @@ export interface TwitterResponse {
   tweets: string[];
   report: string | null;
 }
-const url = process.env.SERVER_URL;
+const url ="https://twitter-analyzer.onrender.com" 
+  //process.env.SERVER_URL;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getTweets = async (cashtag: string, date: string): Promise<any> => {
