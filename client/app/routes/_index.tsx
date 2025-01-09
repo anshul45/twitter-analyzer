@@ -6,6 +6,21 @@ import CustomTable from '~/components/Table';
 import { useLoaderData } from '@remix-run/react';
 import dayjs from 'dayjs';
 
+interface Tweet {
+  cashtags: string[];
+  text: string;
+  createdAt: string;
+  username: string;
+  tweetId: string;
+  qualityScore: number;
+}
+
+interface Filters {
+  date: string | null;
+  username: string;
+  cashtag: string;
+}
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'Twitter Scrapper' },
@@ -14,15 +29,16 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [data, setData] = useState<Tweet[]>([]);
+  const [filteredData, setFilteredData] = useState<Tweet[]>([]);
   const [filters, setFilters] = useState({
     date: null,
     username: 'All',
     cashtag: '',
   });
+  
 
-  const tweets = useLoaderData();
+  const tweets =  useLoaderData<{ tweets: { tweets: Tweet[] }[] }>();
 
   const allTweets = tweets?.tweets?.flatMap((entry) =>
     entry.tweets.map((tweet) => ({
@@ -35,30 +51,35 @@ export default function Index() {
     }))
   );
 
+  const sortedTweets = allTweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+
+
   useEffect(() => {
-    setData(allTweets);
-    setFilteredData(allTweets);
+    setData(sortedTweets);
+    setFilteredData(sortedTweets);
   }, []);
+  
+
 
   // Handle filter changes
-  const handleFilterChange = (key, value) => {
+  const handleFilterChange = (key: keyof Filters, value: string | null) => {
     // Set the filter
     setFilters((prev) => ({ ...prev, [key]: value }));
   
-    let filtered = [...allTweets]; // Start with all tweets
+    let filtered = [...sortedTweets]; // Start with all tweets
   
     // Apply the selected filter condition
     if (key === 'username') {
       console.log(value)
-      filtered = allTweets.filter((tweet) =>
+      filtered = sortedTweets.filter((tweet) =>
         value === 'All' || tweet.username === value
       );
     } else if (key === 'date') {
-      filtered = allTweets.filter((tweet) =>
+      filtered = sortedTweets.filter((tweet) =>
         !value || dayjs(tweet.createdAt).isSame(value, 'day')
       );
     } else if (key === 'cashtag') {
-      filtered = allTweets.filter((tweet) =>
+      filtered = sortedTweets.filter((tweet) =>
         !value || tweet.cashtags.some((tag) => tag.toLowerCase().includes(value.toLowerCase()))
       );
     }
@@ -69,7 +90,7 @@ export default function Index() {
   
 
   // Get unique usernames for the username filter dropdown
-  const uniqueUsernames = [...new Set(allTweets?.map((tweet) => tweet.username))];
+  const uniqueUsernames:string[] = [...new Set(sortedTweets?.map((tweet :any) => tweet.username))];
 
   return (
     <>
@@ -91,7 +112,7 @@ export default function Index() {
                   style={{ width: 200 }}
                 >
                   <Select.Option value="All">All</Select.Option>
-                  {uniqueUsernames.map((username) => (
+                  {uniqueUsernames?.map((username) => (
                     <Select.Option key={username} value={username}>
                       {username}
                     </Select.Option>

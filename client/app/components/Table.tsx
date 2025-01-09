@@ -94,7 +94,7 @@ const App: React.FC<AppProps> = ({ tweets }) => {
         style={{ flexGrow: 1 }}
         columns={columns} 
         dataSource={data} 
-        scroll={{ y: 'calc(100vh - 250px)' }}
+        scroll={{ y: 'calc(100vh - 254px)' }}
         pagination={{
           position: ['bottomCenter'],
           pageSize: 15,

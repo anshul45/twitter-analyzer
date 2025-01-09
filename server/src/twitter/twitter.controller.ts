@@ -81,7 +81,24 @@ export class TwitterController {
     }
   }
 
-  // post
-  // input date and cashtag
-  // report generate and db save
+  @Post('report')
+  async generateReport(
+    @Query('date') date:string,
+    @Query('cashtag') cashtag:string
+  ){
+    try {
+      const report = await this.twitter.saveReport(date.trim(),cashtag);
+      return report;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: 'Error fetching reports',
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }

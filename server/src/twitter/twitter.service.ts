@@ -50,6 +50,8 @@ export class TwitterService {
           date: 'desc',
         },
       });
+
+
       return reports;
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -339,6 +341,63 @@ export class TwitterService {
       }
 
       console.log(`Tweets successfully saved for username: ${username}`);
+    } catch (error) {
+      console.error('Error saving tweets:', error);
+      throw new Error('Failed to save tweets.');
+    }
+  }
+  
+  async saveReport(date:string,cashtag:string){
+    try{
+      const allUserTweets = await this.prismaService.tweetDate.findMany({
+        where: {
+          date:date
+        },
+        include: {
+          tweets: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+
+
+      
+      const filteredTweets = allUserTweets
+            .map((user: { tweets: any[] }) => {
+              const matchingTweets = user.tweets.filter((tweet) => {
+                return (
+                  Array.isArray(tweet.cashtags) &&
+                  tweet.cashtags.includes(cashtag.toUpperCase())
+                );
+              });
+
+              return {
+                ...user,
+                tweets: matchingTweets,
+              };
+            })
+            .filter((user) => user.tweets.length > 0)
+
+
+        const tweetsText = FormatTweets.groupedTweets(filteredTweets);
+        
+        const report = await this.generateReport(tweetsText, cashtag);
+
+
+      
+          await this.prismaService.tweetDate.update({
+            where: { date: date },
+            data: { report: report },
+          });
+     
+
+        return {
+          date:date,
+          report:report
+        }
+
     } catch (error) {
       console.error('Error saving tweets:', error);
       throw new Error('Failed to save tweets.');
