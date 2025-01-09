@@ -83,11 +83,11 @@ export class TwitterController {
 
   @Post('report')
   async generateReport(
-    @Query('date') date:string,
-    @Query('cashtag') cashtag:string
-  ){
+    @Query('date') date: string,
+    @Query('cashtag') cashtag: string,
+  ) {
     try {
-      const report = await this.twitter.saveReport(date.trim(),cashtag);
+      const report = await this.twitter.saveReport(date.trim(), cashtag);
       return report;
     } catch (error) {
       throw new HttpException(
@@ -100,5 +100,4 @@ export class TwitterController {
       );
     }
   }
-
 }

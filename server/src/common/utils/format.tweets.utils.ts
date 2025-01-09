@@ -4,15 +4,16 @@ export class FormatTweets {
       tweetData.tweets.forEach((tweet) => {
         const { text } = tweet;
         const { username } = tweet.user;
+        const tweetId = tweet.tweetId;
 
         const existingUser = acc.find((user) => user.username === username);
 
         if (existingUser) {
-          existingUser.tweets.push(text);
+          existingUser.tweets.push({ text, tweetId });
         } else {
           acc.push({
             username,
-            tweets: [text],
+            tweets: [{ text, tweetId }],
           });
         }
       });

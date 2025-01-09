@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Flex, DatePicker, Button, message, Table, Input, Modal } from 'antd';
 // eslint-disable-next-line import/no-unresolved
@@ -82,16 +83,22 @@ export default function GenerateReport() {
       key: 'date',
     },
     {
-      title: 'Report',
-      dataIndex: 'report',
-      key: 'report',
-      render: (text) => (
-        <span 
-          style={{ color: '#1890ff', cursor: 'pointer' }} 
-          onClick={() => showModal(text)}
-        >
-          {text?.length > 50 ? `${text.slice(0, 175)}...` : text}
-        </span>
+      title: 'Reports',
+      dataIndex: 'reports',
+      key: 'reports',
+      render: (reports) => (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {reports.map((report: any) => (
+            <Button
+              key={report.id}
+              type="primary"
+              onClick={() => showModal(report.content)}
+              style={{ marginBottom: '4px' }}
+            >
+              {report.cashtag}
+            </Button>
+          ))}
+        </div>
       ),
     },
   ]
