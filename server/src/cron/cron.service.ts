@@ -22,7 +22,9 @@ export class CronService {
   constructor(private readonly twitterService: TwitterService) {}
 
   // Cron job to run at Pacific time 5:00 AM every day
-  @Cron('0 1 * * *')
+  @Cron('0 5-16/3 * * *',{
+    timeZone:'America/Los_Angeles'
+  })
   async handleMorningJob() {
     try {
       await Promise.all(
@@ -38,25 +40,5 @@ export class CronService {
     } catch (error) {
       console.error('Error in morning cron job:', error.message);
     }
-  }
-
-  // Cron job to run at Pacific time 4:00 PM every day
-  @Cron('0 0 * * *')
-  async handleFourPM() {
-    try {
-      await Promise.all(
-        this.usernames.map(async (user) => {
-          try {
-            await this.twitterService.savetoDB(user);
-            console.log(`Successfully added user: ${user}`);
-          } catch (error) {
-            console.error(`Error adding user ${user}:`, error.message);
-          }
-        })
-      );
-    } catch (error) {
-      console.error('Error in morning cron job:', error.message);
-    }
-  
   }
 }
