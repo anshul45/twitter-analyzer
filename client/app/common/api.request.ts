@@ -9,12 +9,13 @@ export interface TwitterResponse {
   tweets: string[];
   report: string | null;
 }
+const url = process.env.SERVER_URL;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getTweets = async (cashtag: string, date: string): Promise<any> => {
   try {
     const response = await axios.get(
-      `http://localhost:8000/twitter/cashtag?cashtag=${cashtag}&date=${date.trim()}`
+      `${url}/twitter/cashtag?cashtag=${cashtag}&date=${date.trim()}`
     );
     return response.data;
   } catch (error) {
@@ -30,7 +31,7 @@ export const getTweets = async (cashtag: string, date: string): Promise<any> => 
 export const generateReport = async (date: string,cashtag:string): Promise<void> => {
   try {
     await axios.post(
-      `http://localhost:8000/twitter/report?date=${date}&cashtag=${cashtag}`,
+      `${url}/twitter/report?date=${date}&cashtag=${cashtag}`,
     );
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -45,7 +46,7 @@ export const generateReport = async (date: string,cashtag:string): Promise<void>
 export const getReports = async (): Promise<DailyReport[]> => {
   try {
     const response = await axios.get(
-      `http://localhost:8000/twitter/reports`
+      `${url}/twitter/reports`
     );
     return response.data;
   } catch (error) {
@@ -61,7 +62,7 @@ export const getReports = async (): Promise<DailyReport[]> => {
 export const getRawTweets = async (): Promise<TwitterResponse> => {
   try {
     const response = await axios.get(
-      `http://localhost:8000/twitter/cashtag`
+      `${url}/twitter/cashtag`
     );
     return response.data;
   } catch (error) {
