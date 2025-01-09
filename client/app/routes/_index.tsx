@@ -51,9 +51,12 @@ export default function Index() {
     }))
   );
 
+  const sortedTweets = allTweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+
+
   useEffect(() => {
-    setData(allTweets);
-    setFilteredData(allTweets);
+    setData(sortedTweets);
+    setFilteredData(sortedTweets);
   }, []);
   
 
@@ -63,20 +66,20 @@ export default function Index() {
     // Set the filter
     setFilters((prev) => ({ ...prev, [key]: value }));
   
-    let filtered = [...allTweets]; // Start with all tweets
+    let filtered = [...sortedTweets]; // Start with all tweets
   
     // Apply the selected filter condition
     if (key === 'username') {
       console.log(value)
-      filtered = allTweets.filter((tweet) =>
+      filtered = sortedTweets.filter((tweet) =>
         value === 'All' || tweet.username === value
       );
     } else if (key === 'date') {
-      filtered = allTweets.filter((tweet) =>
+      filtered = sortedTweets.filter((tweet) =>
         !value || dayjs(tweet.createdAt).isSame(value, 'day')
       );
     } else if (key === 'cashtag') {
-      filtered = allTweets.filter((tweet) =>
+      filtered = sortedTweets.filter((tweet) =>
         !value || tweet.cashtags.some((tag) => tag.toLowerCase().includes(value.toLowerCase()))
       );
     }
@@ -87,7 +90,7 @@ export default function Index() {
   
 
   // Get unique usernames for the username filter dropdown
-  const uniqueUsernames:string[] = [...new Set(allTweets?.map((tweet :any) => tweet.username))];
+  const uniqueUsernames:string[] = [...new Set(sortedTweets?.map((tweet :any) => tweet.username))];
 
   return (
     <>
