@@ -22,8 +22,8 @@ export class CronService {
   constructor(private readonly twitterService: TwitterService) {}
 
   // Cron job to run at Pacific time 5:00 AM every day
-  @Cron('0 5-16/3 * * *',{
-    timeZone:'America/Los_Angeles'
+  @Cron('0 5-16/3 * * *', {
+    timeZone: 'America/Los_Angeles',
   })
   async handleMorningJob() {
     try {
@@ -35,7 +35,7 @@ export class CronService {
           } catch (error) {
             console.error(`Error adding user ${user}:`, error.message);
           }
-        })
+        }),
       );
     } catch (error) {
       console.error('Error in morning cron job:', error.message);

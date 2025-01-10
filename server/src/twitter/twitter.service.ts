@@ -41,18 +41,19 @@ export class TwitterService {
   }
   async getReports(): Promise<any> {
     try {
-      const reports = await this.prismaService.tweetDate.findMany({
-        select: {
-          date: true,
-          report: true,
+      const tweetDatesWithReports = await this.prismaService.tweetDate.findMany(
+        {
+          include: {
+            reports: true, // Include associated reports
+          },
         },
-        orderBy: {
-          date: 'desc',
-        },
-      });
-
-
-      return reports;
+      );
+      // Transform the result into the desired format: date: reports
+      const groupedReports = tweetDatesWithReports.map((tweetDate) => ({
+        date: tweetDate.date,
+        reports: tweetDate.reports,
+      }));
+      return groupedReports;
     } catch (error) {
       console.error('Error fetching reports:', error);
       throw new Error('Failed to fetch reports.');
@@ -68,24 +69,34 @@ export class TwitterService {
   ): Promise<any> {
     //{ tweets: string[]; report: string; rawTweets: unknown[] }
     try {
-      const days = options.date?.trim()
-        ? [options.date]
-        : DateUtil.getDatesForLastThreeDays();
+      let allUserTweets;
 
-      const allUserTweets = await this.prismaService.tweetDate.findMany({
-        where: {
-          date: {
-            in: days,
-          },
-        },
-        include: {
-          tweets: {
-            include: {
-              user: true,
+      if (!options.date) {
+        allUserTweets = await this.prismaService.tweetDate.findMany({
+          include: {
+            tweets: {
+              include: {
+                user: true,
+              },
             },
           },
-        },
-      });
+        });
+      } else {
+        allUserTweets = await this.prismaService.tweetDate.findMany({
+          where: {
+            date: {
+              in: options.date?.trim(),
+            },
+          },
+          include: {
+            tweets: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        });
+      }
 
       console.log(options.date);
 
@@ -166,15 +177,15 @@ export class TwitterService {
       // save report in db
       let report = null;
       if (cashtag) {
-        report = await this.generateReport(tweetsText, cashtag);
+        report = null;
       }
       if (options.date) {
-        if (report) {
-          await this.prismaService.tweetDate.update({
-            where: { date: options.date },
-            data: { report: report },
-          });
-        }
+        // if (report) {
+        //   await this.prismaService.tweetDate.update({
+        //     where: { date: options.date },
+        //     data: { report: report },
+        //   });
+        // }
       }
 
       return {
@@ -191,7 +202,8 @@ export class TwitterService {
     const response = await this.openAiService.generateResponse(
       await this.formatUserTweetsToMarkdown(tweetsText),
       `Please analyze these cashtag-related (${cashtag}) tweets by given username and provide a detailed report covering below topics.
-      Please stick to the tweets only and username provided to you. Don't use any other external information. Just analyse these tweets and provide a report.
+      Please stick to the tweets only and username provided to you. Don't use any other external information. 
+      Just analyse these tweets and provide a report. It is very important to stick to the tweets only and cite the tweets using tweet urls.
 
     1. Market Sentiment & Trading Activity
     - Overall market sentiment (bullish/bearish signals)
@@ -230,8 +242,13 @@ export class TwitterService {
   async formatUserTweetsToMarkdown(tweets: any[]): Promise<string> {
     // tweets = [{username: 'pakpakchicken', tweets: ['tweet1', 'tweet2']}, {username: 'fundstrat', tweets: ['tweet1', 'tweet2']}]
     const formattedTweets = tweets.map((user) => {
-      const userTweets = user.tweets.map((tweet) => `- ${tweet}`).join('\n');
-      return `### ${user.username}\n${userTweets}`;
+      const userTweets = user.tweets
+        .map(
+          (tweet) =>
+            `- ${tweet.text} \n - tweet url: https://x.com/${user.username}/status/${tweet.tweetId}`,
+        )
+        .join('\n');
+      return `### ${user.username}\n -${userTweets}`;
     });
 
     const markdown = formattedTweets.join('\n\n');
@@ -346,12 +363,12 @@ export class TwitterService {
       throw new Error('Failed to save tweets.');
     }
   }
-  
-  async saveReport(date:string,cashtag:string){
-    try{
+
+  async saveReport(date: string, cashtag: string) {
+    try {
       const allUserTweets = await this.prismaService.tweetDate.findMany({
         where: {
-          date:date
+          date: date,
         },
         include: {
           tweets: {
@@ -362,42 +379,44 @@ export class TwitterService {
         },
       });
 
-
-      
       const filteredTweets = allUserTweets
-            .map((user: { tweets: any[] }) => {
-              const matchingTweets = user.tweets.filter((tweet) => {
-                return (
-                  Array.isArray(tweet.cashtags) &&
-                  tweet.cashtags.includes(cashtag.toUpperCase())
-                );
-              });
-
-              return {
-                ...user,
-                tweets: matchingTweets,
-              };
-            })
-            .filter((user) => user.tweets.length > 0)
-
-
-        const tweetsText = FormatTweets.groupedTweets(filteredTweets);
-        
-        const report = await this.generateReport(tweetsText, cashtag);
-
-
-      
-          await this.prismaService.tweetDate.update({
-            where: { date: date },
-            data: { report: report },
+        .map((user: { tweets: any[] }) => {
+          const matchingTweets = user.tweets.filter((tweet) => {
+            return (
+              Array.isArray(tweet.cashtags) &&
+              tweet.cashtags.includes(cashtag.toUpperCase())
+            );
           });
-     
 
-        return {
-          date:date,
-          report:report
-        }
+          return {
+            ...user,
+            tweets: matchingTweets,
+          };
+        })
+        .filter((user) => user.tweets.length > 0);
 
+      const tweetsText = FormatTweets.groupedTweets(filteredTweets);
+
+      const report = await this.generateReport(tweetsText, cashtag);
+
+      const tweetDate = await this.prismaService.tweetDate.findUnique({
+        where: { date },
+      });
+
+      await this.prismaService.report.create({
+        data: {
+          content: report,
+          cashtag: cashtag,
+          tweetDate: {
+            connect: { id: tweetDate.id }, // Connect to the existing TweetDate
+          },
+        },
+      });
+
+      return {
+        date: date,
+        report: report,
+      };
     } catch (error) {
       console.error('Error saving tweets:', error);
       throw new Error('Failed to save tweets.');
