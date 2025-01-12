@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table } from 'antd';
+import { Flex, Table } from 'antd';
 import { getCashtags } from '~/common/api.request';
 import CustomChart from '~/components/chart/lineChart';
 
@@ -87,7 +87,7 @@ const analysis = () => {
 
   return (
     <div className='w-full  px-5 pt-2'>
-       {tableData && (
+       {/* {tableData && (
         <Table
           dataSource={tableData.tableData.map((item, index) => ({ key: index, ...item }))}
           columns={tableData.columns}
@@ -97,8 +97,8 @@ const analysis = () => {
             showSizeChanger: false
           }}
         />
-      )}
-      <div className='my-14 h-[70vh]'>
+      )} */}
+      <div className=' h-[89vh]'>
         <CustomChart data={chartData} />
       </div>
     </div>

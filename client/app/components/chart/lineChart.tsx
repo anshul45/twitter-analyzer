@@ -1,4 +1,5 @@
-import React from 'react';
+import { Flex, Select } from 'antd';
+import React, { useState } from 'react';
 import {
   LineChart,
   Line,
@@ -9,13 +10,15 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+const { Option } = Select;
+
 type DataItem = {
-  date: string; 
-  [key: string]: string | number; 
+  date: string;
+  [key: string]: string | number;
 };
 
 type CustomChartProps = {
-  data: DataItem[]; 
+  data: DataItem[];
 };
 
 const colorPalette: string[] = [
@@ -27,26 +30,25 @@ const colorPalette: string[] = [
   '#ef4444', '#e60012', '#3b82f6', '#ef7a07', '#a855f7', '#6ee7b7',
   '#1e40af', '#e11d48', '#00bfae', '#fca5a5', '#fb923c', '#14b8a6',
   '#dc2626', '#d946ef', '#6d28d9', '#34d399', '#6366f1', '#f472b6',
-  '#4ade80', '#60a5fa', '#34d399', '#fbbf24', '#6366f1'
+  '#4ade80', '#60a5fa', '#34d399', '#fbbf24', '#6366f1',
 ];
 
 const getStrokeColor = (index: number): string => {
-  return colorPalette[index % colorPalette.length]; 
+  return colorPalette[index % colorPalette.length];
 };
 
 const CustomChart: React.FC<CustomChartProps> = ({ data }) => {
   const cashtags: string[] = [
-    ...new Set(data?.flatMap(item => Object.keys(item).filter(key => key !== 'date')))
+    ...new Set(data?.flatMap((item) => Object.keys(item).filter((key) => key !== 'date')))
   ];
 
+  const [selectedCashtags, setSelectedCashtags] = useState<string[]>(cashtags);
 
-  const cashtagColors: Record<string, string> = cashtags.reduce((acc, cashtag, index) => {
-    acc[cashtag] = getStrokeColor(index);
-    return acc;
-  }, {} as Record<string, string>);
+  const handleSelectChange = (value: string[]) => {
+    setSelectedCashtags(value);
+  };
 
-
-  const lines = cashtags.map((cashtag, index) => (
+  const filteredLines = selectedCashtags.map((cashtag, index) => (
     <Line
       key={cashtag}
       type="monotone"
@@ -57,41 +59,46 @@ const CustomChart: React.FC<CustomChartProps> = ({ data }) => {
   ));
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart
-        width={500}
-        height={300}
-        data={data}
-        margin={{
-          top: 5,
-          right: 30,
-          left: 20,
-          bottom: 5,
-        }}
-      >
-        <XAxis dataKey="date" />
-        <YAxis
-          tickFormatter={(value: string | number) => cashtags[value as number]} 
-          tick={({ payload, x, y, textAnchor }) => {
-            const cashtag = cashtags[payload.value as number];
-            const color = cashtagColors[cashtag] || '#000'; 
-            return (
-              <text
-                x={x}
-                y={y}
-                textAnchor={textAnchor}
-                fill={color}
-                fontSize={12}
-              >
-                {cashtag}
-              </text>
-            );
+    <>
+      <Flex justify="space-between" align="center" className="mb-5">
+        <div className="font-semibold text-2xl">Cashtag Analytics (Last 10 Days)</div>
+        <Select
+          mode="multiple"
+          placeholder="Select Cashtags"
+          value={selectedCashtags}
+          onChange={handleSelectChange}
+          style={{maxWidth:"850px",minWidth:"200px"}}
+        >
+          {cashtags.map((cashtag) => (
+            <Option key={cashtag} value={cashtag}>
+              {cashtag}
+            </Option>
+          ))}
+        </Select>
+      </Flex>
+      <ResponsiveContainer width="100%" height={430}>
+        <LineChart
+          width={500}
+          height={300}
+          data={data}
+          margin={{
+            top: 5,
+            right: 30,
+            left: 20,
+            bottom: 5,
           }}
-        />
-        <Tooltip />
-        {lines}
-      </LineChart>
-    </ResponsiveContainer>
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis
+  domain={[0, 15]}
+  tickFormatter={(value: string | number) => `${value}`}
+/>
+          <Tooltip />
+          {filteredLines}
+        </LineChart>
+      </ResponsiveContainer>
+    </>
   );
 };
 
