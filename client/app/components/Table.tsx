@@ -9,6 +9,7 @@ interface DataType {
   createdAt: string;
   cashtags: string[];
   tweetUrl: string;
+  type: string;
   qualityScore?: number;
 }
 
@@ -59,9 +60,15 @@ const columns: TableProps<DataType>['columns'] = [
         color: score ? (score > 0.7 ? 'green' : score > 0.4 ? 'orange' : 'red') : 'gray',
         fontWeight: 'bold'
       }}>
-        {score ? (score * 100).toFixed(0) + '%' : 'N/A'}
+        {score ? score : 'N/A'}
       </span>
     ),
+  },
+  {
+    title: 'Tweet Type',
+    dataIndex: 'type',
+    key: 'type',
+    render: (type) => <Tag color={type === 'retweet' ? 'green' : 'blue'}>{type}</Tag>,
   },
 ];
 
@@ -72,6 +79,7 @@ interface AppProps {
     createdAt: string;
     cashtags: string[];
     tweetId: string;
+    type: string;
     qualityScore?: number;
   }[];
 }
@@ -85,8 +93,11 @@ const App: React.FC<AppProps> = ({ tweets }) => {
     createdAt: tweet.createdAt,
     cashtags: tweet.cashtags,
     tweetUrl: `https://x.com/${tweet.username}/status/${tweet.tweetId}`,
+    type: tweet.type,
     qualityScore: tweet.qualityScore,
   }));
+
+  console.log('tweets:', tweets);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>

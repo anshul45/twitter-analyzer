@@ -13,6 +13,7 @@ interface Tweet {
   username: string;
   tweetId: string;
   qualityScore: number;
+  type: string;
 }
 
 interface Filters {
@@ -47,7 +48,8 @@ export default function Index() {
       createdAt: tweet.createdAt,
       username: tweet.username,
       tweetId: tweet.tweetId,
-      qualityScore: tweet.qualityScore
+      qualityScore: tweet.qualityScore,
+      type: tweet.type,
     }))
   );
 
