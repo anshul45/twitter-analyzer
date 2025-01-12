@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from 'axios';
 
 export interface DailyReport {
@@ -71,6 +73,23 @@ export const getRawTweets = async (): Promise<TwitterResponse> => {
       console.error('Axios error fetching tweets:', error.response?.data || error.message);
     } else {
       console.error('Unexpected error fetching tweets:', error);
+    }
+    throw error;
+  }
+};
+
+export const getSummary = async (filteredData: any): Promise<string> => {
+  try {
+    const response = await axios.post(
+      `${url}/twitter/summary`,
+      { tweets: filteredData }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching summary:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error fetching summary:', error);
     }
     throw error;
   }
