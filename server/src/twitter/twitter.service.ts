@@ -279,16 +279,37 @@ export class TwitterService {
           createdAt: string;
           text: string;
           username: string;
+          retweetedTweet: any;
+          conversationId: string;
         } => ({
           tweetId: tweet.tweet_id,
           createdAt: DateUtil.dateOutput(tweet.created_at.toString()),
-          text: tweet.text,
+          text: tweet.retweeted_tweet
+            ? tweet.retweeted_tweet?.text + '\n' + tweet.text
+            : tweet.text,
           username: username,
+          retweetedTweet: tweet.retweeted_tweet?.text,
+          conversationId: tweet.conversation_id,
         }),
       );
 
+      // combine tweets with same conversationId
+      const combinedTweets = extractedTweets.reduce((acc, tweet) => {
+        const existingTweet = acc.find(
+          (existing) => existing.conversationId === tweet.conversationId,
+        );
+
+        if (existingTweet) {
+          existingTweet.text += '\n' + tweet.text;
+        } else {
+          acc.push(tweet);
+        }
+
+        return acc;
+      }, [] as any[]);
+
       const uniqueDates = [
-        ...new Set(extractedTweets.map((tweet) => tweet.createdAt)),
+        ...new Set(combinedTweets.map((tweet) => tweet.createdAt)),
       ];
 
       let user = await this.prismaService.user.findUnique({
@@ -339,6 +360,9 @@ export class TwitterService {
           );
 
           const cashtags = tweetsCashtags?.content;
+
+          // store cashtag count in the database by date
+          await this.updateCashtagCounts(date, cashtags['cashtags']);
 
           await this.prismaService.tweet.upsert({
             where: { tweetId: tweet.tweetId },
@@ -421,5 +445,77 @@ export class TwitterService {
       console.error('Error saving tweets:', error);
       throw new Error('Failed to save tweets.');
     }
+  }
+
+  async getCashtagCountsByDate(): Promise<any[]> {
+    const result = await this.prismaService.$runCommandRaw({
+      aggregate: 'CashtagCount',
+      pipeline: [
+        {
+          $group: {
+            _id: {
+              cashtag: '$cashtag',
+              date: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$createdAt',
+                },
+              },
+            },
+            totalCount: { $sum: '$count' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            cashtag: '$_id.cashtag',
+            date: '$_id.date',
+            count: '$totalCount',
+          },
+        },
+        {
+          $sort: { date: 1 },
+        },
+      ],
+      cursor: {},
+    });
+
+    return (result as any).cursor.firstBatch;
+  }
+
+  async updateCashtagCounts(date: string, cashtags: string[]): Promise<void> {
+    // Count occurrences of each cashtag
+    const cashtagCounts = cashtags.reduce(
+      (acc, cashtag) => {
+        acc[cashtag] = (acc[cashtag] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    // Update each cashtag count
+    await Promise.all(
+      Object.entries(cashtagCounts).map(async ([cashtag, increment]) => {
+        await this.prismaService.cashtagCount.upsert({
+          where: {
+            cashtag_date: {
+              // Using the compound unique constraint
+              cashtag: cashtag,
+              date: date,
+            },
+          },
+          update: {
+            count: {
+              increment: increment,
+            },
+          },
+          create: {
+            cashtag: cashtag,
+            date: date,
+            count: increment,
+          },
+        });
+      }),
+    );
   }
 }
