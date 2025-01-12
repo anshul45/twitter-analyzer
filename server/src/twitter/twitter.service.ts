@@ -351,17 +351,27 @@ export class TwitterService {
           const tweetsCashtags = await this.openAiService.generateResponse(
             `classify ${tweet.text} into cashtag category.`,
             `You are a helpful AI that determines if tweets belongs to any twitter cashtags and assign qualityScore. 
-            Cashtags on Twitter are a way to refer to specific stocks, cryptocurrencies, or other financial instruments using a dollar sign ($) followed by a ticker symbol (e.g., $AAPL for Apple, $BTC for Bitcoin). 
-            They are similar to hashtags but are used for financial conversations.
+              Cashtags on Twitter are a way to refer to specific stocks, cryptocurrencies, or other financial instruments using a dollar sign ($) followed by a ticker symbol (e.g., $AAPL for Apple, $BTC for Bitcoin). 
+              They are similar to hashtags but are used for financial conversations.
 
-            qualityScore is a number between 0 and 10 that indicates how the quality of tweet, whether tweet has some insights or it is more like a spam. 0 indicates spam and 10 indicates high quality tweet.
+              qualityScore is a number between 0 and 10 that indicates how the quality of tweet, whether tweet has some insights or it is more like a spam. 0 indicates spam and 10 indicates high quality tweet.
+              Classify the tweet into tweetType. tweetType signals if tweet contains falls into either of TWEET_TAGS.
+              TWEET_TAGS:
+                "breaking_news_announcements",
+                "earnings_financial_results",
+                "mergers_acquisitions",
+                "fundamental_analysis",
+                "market_sentiment_opinions",
+                "industry_macroeconomic_impact",
+                "miscellaneous_noise"
+
             Return Json with list of cashtags in the following format:
               {
                 "cashtags": [
                   "$APPL",
                 ],
                 "qualityScore": 5,
-                "tweetType": ""
+                "tweetType": "breaking_news_announcements"
               }
              `,
             {
@@ -386,6 +396,7 @@ export class TwitterService {
               tweetDate: { connect: { id: tweetDate.id } },
               cashtags: cashtags['cashtags'] || { set: [] },
               qualityScore: cashtags['qualityScore'] || 0,
+              type: cashtags['tweetType'] || ''
             },
           });
         }
