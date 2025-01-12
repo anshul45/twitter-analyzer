@@ -13,10 +13,10 @@ const url ="https://twitter-analyzer.onrender.com"
   //process.env.SERVER_URL;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getTweets = async (cashtag: string, date: string): Promise<any> => {
+export const getCashtags = async (): Promise<any> => {
   try {
     const response = await axios.get(
-      `${url}/twitter/cashtag?cashtag=${cashtag}&date=${date.trim()}`
+      `${url}/twitter/cashtag`
     );
     return response.data;
   } catch (error) {
@@ -63,7 +63,7 @@ export const getReports = async (): Promise<DailyReport[]> => {
 export const getRawTweets = async (): Promise<TwitterResponse> => {
   try {
     const response = await axios.get(
-      `${url}/twitter/cashtag`
+      `${url}/twitter`
     );
     return response.data;
   } catch (error) {

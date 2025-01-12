@@ -455,12 +455,7 @@ export class TwitterService {
           $group: {
             _id: {
               cashtag: '$cashtag',
-              date: {
-                $dateToString: {
-                  format: '%Y-%m-%d',
-                  date: '$createdAt',
-                },
-              },
+              date: '$date',
             },
             totalCount: { $sum: '$count' },
           },
@@ -472,16 +467,15 @@ export class TwitterService {
             date: '$_id.date',
             count: '$totalCount',
           },
-        },
-        {
-          $sort: { date: 1 },
-        },
+        }
       ],
-      cursor: {},
+      cursor: {}, 
     });
-
+  
     return (result as any).cursor.firstBatch;
   }
+  
+  
 
   async updateCashtagCounts(date: string, cashtags: string[]): Promise<void> {
     // Count occurrences of each cashtag

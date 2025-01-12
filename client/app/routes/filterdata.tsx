@@ -145,7 +145,7 @@ export default function GenerateReport() {
       <Modal
         title="Report Details"
         width={1000}
-        visible={isModalVisible}
+        open={isModalVisible}
         onCancel={handleModalClose}
         footer={[
           <Button key="close" onClick={handleModalClose}>
