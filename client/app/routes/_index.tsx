@@ -61,32 +61,32 @@ export default function Index() {
   
 
 
-  // Handle filter changes
   const handleFilterChange = (key: keyof Filters, value: string | null) => {
-    // Set the filter
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    // Update the filter state
+    setFilters((prevFilters) => {
+      const updatedFilters = { ...prevFilters, [key]: value };
   
-    let filtered = [...sortedTweets]; // Start with all tweets
+      const filtered = sortedTweets.filter((tweet) => {
+        const matchesDate =
+          !updatedFilters.date || dayjs(tweet.createdAt).isSame(updatedFilters.date, 'day');
+        const matchesUsername =
+          updatedFilters.username === 'All' || tweet.username === updatedFilters.username;
+        const matchesCashtag =
+          !updatedFilters.cashtag ||
+          tweet.cashtags.some((tag) =>
+            tag.toLowerCase().includes(updatedFilters.cashtag.toLowerCase())
+          );
   
-    // Apply the selected filter condition
-    if (key === 'username') {
-      console.log(value)
-      filtered = sortedTweets.filter((tweet) =>
-        value === 'All' || tweet.username === value
-      );
-    } else if (key === 'date') {
-      filtered = sortedTweets.filter((tweet) =>
-        !value || dayjs(tweet.createdAt).isSame(value, 'day')
-      );
-    } else if (key === 'cashtag') {
-      filtered = sortedTweets.filter((tweet) =>
-        !value || tweet.cashtags.some((tag) => tag.toLowerCase().includes(value.toLowerCase()))
-      );
-    }
+        return matchesDate && matchesUsername && matchesCashtag; 
+      });
   
-    // Update the filtered data
-    setFilteredData(filtered);
+   
+      setFilteredData(filtered);
+  
+      return updatedFilters; 
+    });
   };
+  
   
 
   // Get unique usernames for the username filter dropdown
