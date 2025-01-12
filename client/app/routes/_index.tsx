@@ -1,7 +1,7 @@
 import { MetaFunction } from '@remix-run/node';
 import { useEffect, useState } from 'react';
-import { getRawTweets } from '~/common/api.request';
-import { Input, Flex, Select, Space, DatePicker } from 'antd';
+import { getRawTweets, getSummery } from '~/common/api.request';
+import { Input, Flex, Select, Space, DatePicker, Button, Modal,Spin } from 'antd';
 import CustomTable from '~/components/Table';
 import { useLoaderData } from '@remix-run/react';
 import dayjs from 'dayjs';
@@ -31,12 +31,16 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   const [data, setData] = useState<Tweet[]>([]);
   const [filteredData, setFilteredData] = useState<Tweet[]>([]);
+  const [openSummeryModal,setOpenSummeryModal] = useState<boolean>()
+  const [username,setUsername] = useState<string>("")
+  const [cashtag,setCashtag] = useState<string>("")
   const [filters, setFilters] = useState({
     date: null,
     username: 'All',
     cashtag: '',
   });
   
+  const [isFilterChanged, setIsFilterChanged] = useState(false);
 
   const tweets =  useLoaderData<{ tweets: { tweets: Tweet[] }[] }>();
 
@@ -59,7 +63,9 @@ export default function Index() {
     setFilteredData(sortedTweets);
   }, []);
   
-
+ useEffect(() => {
+    setIsFilterChanged(JSON.stringify(filteredData) !== JSON.stringify(data));
+  }, [filteredData, data]);
 
   const handleFilterChange = (key: keyof Filters, value: string | null) => {
     // Update the filter state
@@ -87,6 +93,12 @@ export default function Index() {
     });
   };
   
+
+  const handleSummery = async() => {
+    setOpenSummeryModal(true)
+    const result = await getSummery(filteredData,username,cashtag)
+  }
+
   
 
   // Get unique usernames for the username filter dropdown
@@ -121,12 +133,14 @@ export default function Index() {
               </div>
               <div>
                 <h1 className="font-semibold text-sm">Cashtag</h1>
-                <Flex gap={2}>
                   <Input
                     placeholder="Search cashtag"
                     onChange={(e) => handleFilterChange('cashtag', e.target.value)}
                   />
-                </Flex>
+              </div>
+              <div>
+                <h1 className="font-semibold text-sm">Summerize</h1>
+                 <Button type='primary' disabled={!isFilterChanged} onClick={handleSummery}>Get Summery</Button>
               </div>
             </Space>
           </div>
@@ -135,6 +149,11 @@ export default function Index() {
           <CustomTable tweets={filteredData} />
         </div>
       </div>
+      <Modal width={800} open={openSummeryModal} onCancel={() => setOpenSummeryModal(false)} footer={<Button onClick={() => setOpenSummeryModal(false)}>Close</Button>}>
+        <Flex justify='center' className='h-[60vh]' align='center'>
+        <Spin/>
+        </Flex>
+        </Modal>
     </>
   );
 }
