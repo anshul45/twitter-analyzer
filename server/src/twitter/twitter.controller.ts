@@ -39,7 +39,7 @@ export class TwitterController {
     );
   }
 
-  @Get('cashtag')
+  @Get()
   async processText(
     @Query('cashtag') cashtag?: string,
     @Query('date') date?: string,
@@ -89,6 +89,23 @@ export class TwitterController {
     try {
       const report = await this.twitter.saveReport(date.trim(), cashtag);
       return report;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: 'Error fetching reports',
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('cashtag')
+  async getCashtag() {
+    try {
+      const cashtags = await this.twitter.getCashtagCountsByDate();
+      return cashtags;
     } catch (error) {
       throw new HttpException(
         {
