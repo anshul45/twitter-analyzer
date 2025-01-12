@@ -354,7 +354,7 @@ export class TwitterService {
               Cashtags on Twitter are a way to refer to specific stocks, cryptocurrencies, or other financial instruments using a dollar sign ($) followed by a ticker symbol (e.g., $AAPL for Apple, $BTC for Bitcoin). 
               They are similar to hashtags but are used for financial conversations.
 
-              qualityScore is a number between 0 and 10 that indicates how the quality of tweet, whether tweet has some insights or it is more like a spam. 0 indicates spam and 10 indicates high quality tweet.
+              qualityScore is a number between 0 and 10 that indicates how the quality of tweet, whether tweet has some insights or it is more like a spam. The insights should be related to financial information. 0 indicates spam and 10 indicates high quality tweet.
               Classify the tweet into tweetType. tweetType signals if tweet contains falls into either of TWEET_TAGS.
               TWEET_TAGS:
                 "breaking_news_announcements",
@@ -396,7 +396,7 @@ export class TwitterService {
               tweetDate: { connect: { id: tweetDate.id } },
               cashtags: cashtags['cashtags'] || { set: [] },
               qualityScore: cashtags['qualityScore'] || 0,
-              type: cashtags['tweetType'] || ''
+              type: cashtags['tweetType'] || '',
             },
           });
         }
@@ -488,15 +488,13 @@ export class TwitterService {
             date: '$_id.date',
             count: '$totalCount',
           },
-        }
+        },
       ],
-      cursor: {}, 
+      cursor: {},
     });
-  
+
     return (result as any).cursor.firstBatch;
   }
-  
-  
 
   async updateCashtagCounts(date: string, cashtags: string[]): Promise<void> {
     // Count occurrences of each cashtag
@@ -538,13 +536,15 @@ export class TwitterService {
     try {
       // Format tweets for OpenAI
       const formattedTweets = tweets
-      .filter((tweet: any) => tweet.qualityScore > 5)
-      .map(tweet => 
-        `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(", ")} \n ${tweet.text}\n---\n`
-      ).join('\n');
+        .filter((tweet: any) => tweet.qualityScore > 5)
+        .map(
+          (tweet) =>
+            `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n ${tweet.text}\n---\n`,
+        )
+        .join('\n');
 
       if (formattedTweets.length == 0) {
-        return 'No relevant tweets found'
+        return 'No relevant tweets found';
       }
 
       const response = await this.openAiService.generateResponse(

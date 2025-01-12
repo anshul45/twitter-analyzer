@@ -1,6 +1,7 @@
+/* eslint-disable import/no-unresolved */
 import { MetaFunction } from '@remix-run/node';
 import { useEffect, useState } from 'react';
-import { getRawTweets, getSummery } from '~/common/api.request';
+import { getRawTweets, getSummary } from '~/common/api.request';
 import { Input, Flex, Select, Space, DatePicker, Button, Modal,Spin } from 'antd';
 import CustomTable from '~/components/Table';
 import { useLoaderData } from '@remix-run/react';
@@ -32,9 +33,11 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   const [data, setData] = useState<Tweet[]>([]);
   const [filteredData, setFilteredData] = useState<Tweet[]>([]);
-  const [openSummeryModal,setOpenSummeryModal] = useState<boolean>()
-  const [username,setUsername] = useState<string>("")
-  const [cashtag,setCashtag] = useState<string>("")
+  const [openSummaryModal, setOpenSummaryModal] = useState<boolean>(false)
+  const [summaryText, setSummaryText] = useState<string>("")
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false)
+  const [username, setUsername] = useState<string>("")
+  const [cashtag, setCashtag] = useState<string>("")
   const [filters, setFilters] = useState({
     date: null,
     username: 'All',
@@ -96,9 +99,18 @@ export default function Index() {
   };
   
 
-  const handleSummery = async() => {
-    setOpenSummeryModal(true)
-    const result = await getSummery(filteredData,username,cashtag)
+  const handleSummary = async () => {
+    setOpenSummaryModal(true)
+    setIsLoadingSummary(true)
+    try {
+      const result = await getSummary(filteredData);
+      setSummaryText(result?.summary);
+    } catch (error) {
+      console.error('Error fetching summary:', error)
+      setSummaryText('Failed to load summary. Please try again.')
+    } finally {
+      setIsLoadingSummary(false)
+    }
   }
 
   
@@ -141,8 +153,8 @@ export default function Index() {
                   />
               </div>
               <div>
-                <h1 className="font-semibold text-sm">Summerize</h1>
-                 <Button type='primary' disabled={!isFilterChanged} onClick={handleSummery}>Get Summery</Button>
+                <h1 className="font-semibold text-sm">Summarize</h1>
+                 <Button type='primary' disabled={!isFilterChanged} onClick={handleSummary}>Get Summary</Button>
               </div>
             </Space>
           </div>
@@ -151,11 +163,20 @@ export default function Index() {
           <CustomTable tweets={filteredData} />
         </div>
       </div>
-      <Modal width={800} open={openSummeryModal} onCancel={() => setOpenSummeryModal(false)} footer={<Button onClick={() => setOpenSummeryModal(false)}>Close</Button>}>
-        <Flex justify='center' className='h-[60vh]' align='center'>
-        <Spin/>
+      <Modal 
+        width={800} 
+        open={openSummaryModal} 
+        onCancel={() => setOpenSummaryModal(false)} 
+        footer={<Button onClick={() => setOpenSummaryModal(false)}>Close</Button>}
+      >
+        <Flex justify='center' className='h-[60vh] p-4' align='center'>
+          {isLoadingSummary ? (
+            <Spin />
+          ) : (
+            <div className="whitespace-pre-wrap">{summaryText}</div>
+          )}
         </Flex>
-        </Modal>
+      </Modal>
     </>
   );
 }

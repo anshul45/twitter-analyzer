@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable import/no-unresolved */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useEffect, useState } from 'react';
-import { Flex, Table } from 'antd';
 import { getCashtags } from '~/common/api.request';
 import CustomChart from '~/components/chart/lineChart';
 
@@ -32,7 +35,7 @@ const analysis = () => {
     }));
 
     result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return result;
+    return result.slice(0, 10); // Return only the last 10 days of data
   }
 
   function generateTableData(data: any[]): { tableData: any[]; columns: any[] } {
@@ -98,7 +101,7 @@ const analysis = () => {
           }}
         />
       )} */}
-      <div className=' h-[89vh]'>
+      <div className='h-[120vh] w-full'>
         <CustomChart data={chartData} />
       </div>
     </div>

@@ -97,8 +97,6 @@ const App: React.FC<AppProps> = ({ tweets }) => {
     qualityScore: tweet.qualityScore,
   }));
 
-  console.log('tweets:', tweets);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Table<DataType> 

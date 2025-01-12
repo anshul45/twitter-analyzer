@@ -89,7 +89,12 @@ const CustomChart: React.FC<CustomChartProps> = ({ data }) => {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
+          <XAxis 
+            dataKey="date" 
+            angle={-90} 
+            textAnchor="end"
+            height={65}
+          />
           <YAxis
   domain={[0, 15]}
   tickFormatter={(value: string | number) => `${value}`}
