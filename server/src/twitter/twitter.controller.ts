@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  Body,
 } from '@nestjs/common';
 import { TwitterService } from './twitter.service';
 
@@ -116,5 +117,11 @@ export class TwitterController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Post('summary')
+  async generateSummary(@Body() tweets: any): Promise<{ summary: string }> {
+    const summary = await this.twitter.generateSummaryFromTweets(tweets);
+    return { summary };
   }
 }

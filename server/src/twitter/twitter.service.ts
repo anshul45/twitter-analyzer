@@ -21,6 +21,15 @@ interface allTweetsData {
   date: string;
 }
 
+interface TweetInput {
+  cashtags: string[];
+  createdAt: string;
+  qualityScore: number;
+  text: string;
+  tweetId: string;
+  username: string;
+}
+
 @Injectable()
 export class TwitterService {
   private client: ApifyClient;
@@ -346,12 +355,13 @@ export class TwitterService {
             They are similar to hashtags but are used for financial conversations.
 
             qualityScore is a number between 0 and 10 that indicates how the quality of tweet, whether tweet has some insights or it is more like a spam. 0 indicates spam and 10 indicates high quality tweet.
-             Return Json with list of cashtags in the following format:
+            Return Json with list of cashtags in the following format:
               {
                 "cashtags": [
                   "$APPL",
                 ],
-                qualityScore: 5
+                "qualityScore": 5,
+                "tweetType": ""
               }
              `,
             {
@@ -511,5 +521,34 @@ export class TwitterService {
         });
       }),
     );
+  }
+
+  async generateSummaryFromTweets(tweets: TweetInput[]): Promise<string> {
+    try {
+      // Format tweets for OpenAI
+      const formattedTweets = tweets
+      .filter((tweet: any) => tweet.qualityScore > 5)
+      .map(tweet => 
+        `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(", ")} \n ${tweet.text}\n---\n`
+      ).join('\n');
+
+      if (formattedTweets.length == 0) {
+        return 'No relevant tweets found'
+      }
+
+      const response = await this.openAiService.generateResponse(
+        formattedTweets,
+        `I use X (previously Twitter) to stay on top of news related to publicly traded companies. 
+         Below are a few tweets from [date] for [$cashtag]. Can you help summarize the top takeaways? 
+        [Dedupe for redundant topics across tweets]
+        [Include your perspective on what it means for [$cashtag] - bullish or bearish for the stock price, implications on the company's long-term prospects.] 
+        `,
+      );
+
+      return response.content as string;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      throw new Error('Failed to generate summary from tweets');
+    }
   }
 }
