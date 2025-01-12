@@ -6,13 +6,19 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 
-// Create a mapping for cashtags to Y-axis labels
-const cashtagLabels = ["$UBER", "$TSLA", "$AAPL"];
-const colorPalette = [
+type DataItem = {
+  date: string; 
+  [key: string]: string | number; 
+};
+
+type CustomChartProps = {
+  data: DataItem[]; 
+};
+
+const colorPalette: string[] = [
   '#ff7300', '#ff4e00', '#ff1a00', '#ff9500', '#ff5900', '#ff0000',
   '#3b82f6', '#9333ea', '#10b981', '#f59e0b', '#6ee7b7', '#22d3ee',
   '#8b5cf6', '#f43f5e', '#e11d48', '#fbbf24', '#14b8a6', '#9333ea',
@@ -24,15 +30,22 @@ const colorPalette = [
   '#4ade80', '#60a5fa', '#34d399', '#fbbf24', '#6366f1'
 ];
 
-const getStrokeColor = (index) => {
-  return colorPalette[index % colorPalette.length]; // Cycle through colors
+const getStrokeColor = (index: number): string => {
+  return colorPalette[index % colorPalette.length]; 
 };
 
-const CustomChart = ({ data }) => {
-  // Extract unique cashtags from the dataset
-  const cashtags = [...new Set(data?.flatMap(item => Object.keys(item).filter(key => key !== 'date')))];
+const CustomChart: React.FC<CustomChartProps> = ({ data }) => {
+  const cashtags: string[] = [
+    ...new Set(data?.flatMap(item => Object.keys(item).filter(key => key !== 'date')))
+  ];
 
-  // Create line components dynamically for each cashtag
+
+  const cashtagColors: Record<string, string> = cashtags.reduce((acc, cashtag, index) => {
+    acc[cashtag] = getStrokeColor(index);
+    return acc;
+  }, {} as Record<string, string>);
+
+
   const lines = cashtags.map((cashtag, index) => (
     <Line
       key={cashtag}
@@ -56,13 +69,26 @@ const CustomChart = ({ data }) => {
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="date" />
         <YAxis
-          tickFormatter={(value) => cashtags[value]} // Format ticks as cashtags
+          tickFormatter={(value: string | number) => cashtags[value as number]} 
+          tick={({ payload, x, y, textAnchor }) => {
+            const cashtag = cashtags[payload.value as number];
+            const color = cashtagColors[cashtag] || '#000'; 
+            return (
+              <text
+                x={x}
+                y={y}
+                textAnchor={textAnchor}
+                fill={color}
+                fontSize={12}
+              >
+                {cashtag}
+              </text>
+            );
+          }}
         />
         <Tooltip />
-        <Legend />
         {lines}
       </LineChart>
     </ResponsiveContainer>

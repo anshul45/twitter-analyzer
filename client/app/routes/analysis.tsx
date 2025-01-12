@@ -86,18 +86,21 @@ const analysis = () => {
   }, []);
 
   return (
-    <div className='w-full h-[80vh] p-5'>
-      <div className='my-10 h-full'>
-        <CustomChart data={chartData} />
-      </div>
-      {tableData && (
+    <div className='w-full  px-5 pt-2'>
+       {tableData && (
         <Table
           dataSource={tableData.tableData.map((item, index) => ({ key: index, ...item }))}
           columns={tableData.columns}
-          pagination={false}
-          scroll={{ x: true }}
+          pagination={{
+            position: ['bottomCenter'],
+            pageSize: 9,
+            showSizeChanger: false
+          }}
         />
       )}
+      <div className='my-14 h-[70vh]'>
+        <CustomChart data={chartData} />
+      </div>
     </div>
   );
 };
