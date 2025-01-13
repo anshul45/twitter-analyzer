@@ -120,10 +120,14 @@ export class TwitterController {
   }
 
   @Post('summary')
-  async generateSummary(@Body() tweets: any): Promise<{ summary: string }> {
-    const summary = await this.twitter.generateSummaryFromTweets(
-      tweets?.tweets,
-    );
+  async generateSummary(
+    @Body() body: { tweets?: any; cashtag?: string; date?: string },
+  ): Promise<{ summary: string }> {
+    const { tweets, cashtag, date } = body;
+    
+    const summary = await this.twitter.generateSummaryFromTweets(tweets,cashtag,date);
+  
     return { summary };
   }
+  
 }

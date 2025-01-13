@@ -78,13 +78,18 @@ export const getRawTweets = async (): Promise<TwitterResponse> => {
   }
 };
 
-export const getSummary = async (filteredData: any): Promise<string> => {
+export const getSummary = async (filteredData?: any,cashtag?:string,date?:string): Promise<string> => {
   try {
     const response = await axios.post(
       `${url}/twitter/summary`,
-      { tweets: filteredData }
+      { tweets: filteredData,
+        cashtag:cashtag,
+        date:date
+       }
     );
+    console.log(response.data)
     return response.data;
+
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error('Axios error fetching summary:', error.response?.data || error.message);
@@ -94,3 +99,5 @@ export const getSummary = async (filteredData: any): Promise<string> => {
     throw error;
   }
 };
+
+

@@ -50,6 +50,7 @@ model CashtagCount {
   cashtag     String   @unique
   count       Int
   date        String
+  types        String[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@unique([cashtag, date])
