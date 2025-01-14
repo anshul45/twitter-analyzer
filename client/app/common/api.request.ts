@@ -11,8 +11,8 @@ export interface TwitterResponse {
   tweets: string[];
   report: string | null;
 }
-const url ="https://twitter-analyzer.onrender.com" 
-  //process.env.SERVER_URL;
+const url = "http://localhost:8000" 
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getCashtags = async (): Promise<any> => {
@@ -78,17 +78,16 @@ export const getRawTweets = async (): Promise<TwitterResponse> => {
   }
 };
 
-export const getSummary = async (filteredData?: any,cashtag?:string,date?:string): Promise<string> => {
+export const getSummary = async (filteredData?: any,cashtag?:string,todayCashtag?:string): Promise<string> => {
   try {
     const response = await axios.post(
       `${url}/twitter/summary`,
       { tweets: filteredData,
         cashtag:cashtag,
-        date:date
+        todayCashtag:todayCashtag
        }
     );
-    console.log(response.data)
-    return response.data;
+    return response.data.summary;
 
   } catch (error) {
     if (axios.isAxiosError(error)) {

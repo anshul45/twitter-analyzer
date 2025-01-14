@@ -105,8 +105,7 @@ export default function Index() {
     setIsLoadingSummary(true)
     try {
       const result = await getSummary(filteredData);
-      //@ts-ignore
-      setSummaryText(result?.summary);
+      setSummaryText(result);
     } catch (error) {
       console.error('Error fetching summary:', error)
       setSummaryText('Failed to load summary. Please try again.')

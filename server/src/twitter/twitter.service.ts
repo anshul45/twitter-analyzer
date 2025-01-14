@@ -545,7 +545,7 @@ export class TwitterService {
     );
   }
 
-  async generateSummaryFromTweets(tweets?: TweetInput[],cashtag?:string,date?:string): Promise<string> {
+  async generateSummaryFromTweets(tweets?: TweetInput[],cashtag?:string,todayCashtag?:string): Promise<string> {
     try {
       // Format tweets for OpenAI
       let formattedTweets 
@@ -568,6 +568,17 @@ export class TwitterService {
         )
         .join('\n');
       }
+      else{
+        const tweets = await this.getTodaysCashtagTweets(todayCashtag)
+        formattedTweets = tweets
+        .filter((tweet: any) => tweet.qualityScore > 0)
+        .map(
+          (tweet) =>
+            `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n ${tweet.text}\n---\n`,
+        )
+        .join('\n')
+      }
+
 
       if (formattedTweets.length == 0) {
         return 'No relevant tweets found';
@@ -610,4 +621,30 @@ export class TwitterService {
       throw new Error('Failed to get cashtag tweets');
     }
   }
+
+
+  async getTodaysCashtagTweets(cashtag:string):Promise<TweetInput[]>{
+    try{
+      const today = new Date()
+      const tweets = await this.prismaService.$runCommandRaw({
+        aggregate: 'Tweet', 
+        pipeline: [
+          {
+            $match: {
+              cashtags: cashtag,
+              createdAt:today.toDateString()
+            },
+          },
+        ],
+        cursor: {},
+      });
+
+      return (tweets as any).cursor?.firstBatch
+    }
+    catch (error) {
+      console.error("Error getting today's cashtag tweets:", error);
+      throw new Error("Failed to get today's cashtag tweets");
+    }
+  }
+
 }
