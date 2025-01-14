@@ -155,12 +155,16 @@ const analysis = () => {
 
   return (
     <div className="w-full px-5 pt-2">
-      {tableData && (
+      {tableData ? (
         <Table
           dataSource={tableData.tableData.map((item, index) => ({ key: index, ...item }))}
           columns={tableData.columns}
           pagination={false}
         />
+      ) : (
+        <Flex justify="center" align="center" className="h-96">
+          <Spin size="large" />
+        </Flex>
       )}
       <Drawer
         title={`Summary for ${selectedCashtag || ''}`}
