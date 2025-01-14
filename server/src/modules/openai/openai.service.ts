@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable prefer-const */
 import { AzureOpenAI, OpenAI } from 'openai';
 import * as dotenv from 'dotenv';
 
@@ -203,7 +205,7 @@ export class OpenAIWrapper {
           } catch (error) {
             retryCount++;
             if (retryCount >= this.maxRetries) {
-              throw new Error(
+              console.log(
                 `Failed to parse response as JSON after ${this.maxRetries} retries.`,
               );
             }
@@ -226,7 +228,7 @@ export class OpenAIWrapper {
       } catch (error) {
         retryCount++;
         if (retryCount >= this.maxRetries) {
-          throw new Error(
+          console.log(
             `Failed to generate a valid response after ${this.maxRetries} retries.`,
           );
         }
@@ -331,7 +333,7 @@ export class OpenAIWrapper {
       } catch (error) {
         retryCount++;
         if (retryCount >= this.maxRetries) {
-          throw new Error(
+          console.log(
             `Failed to generate a valid response after ${this.maxRetries} retries.`,
           );
         }

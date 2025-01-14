@@ -71,19 +71,18 @@ export class TwitterController {
       'fundamentell',
       'BigBullCap',
       'JonahLupton',
-      'mukund'
+      'mukund',
     ];
-    
-    await Promise.all(
-      usernames.map(async (user) => {
-        try {
-          await this.twitter.savetoDB(user);
-          console.log(`Successfully added user: ${user}`);
-        } catch (error) {
-          console.error(`Error adding user ${user}:`, error.message);
-        }
-      }),
-    );
+
+    // Sequential execution
+    for (const user of usernames) {
+      try {
+        await this.twitter.savetoDB(user);
+        console.log(`Successfully added user: ${user}`);
+      } catch (error) {
+        console.error(`Error adding user ${user}:`, error.message);
+      }
+    }
   }
 
   @Get()
@@ -170,10 +169,13 @@ export class TwitterController {
     @Body() body: { tweets?: any; cashtag?: string; todayCashtag?: string },
   ): Promise<{ summary: string }> {
     const { tweets, cashtag, todayCashtag } = body;
-    
-    const summary = await this.twitter.generateSummaryFromTweets(tweets,cashtag,todayCashtag);
-  
+
+    const summary = await this.twitter.generateSummaryFromTweets(
+      tweets,
+      cashtag,
+      todayCashtag,
+    );
+
     return { summary };
   }
-  
 }
