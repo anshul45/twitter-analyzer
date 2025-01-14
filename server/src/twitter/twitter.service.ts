@@ -571,7 +571,7 @@ export class TwitterService {
       else{
         const tweets = await this.getTodaysCashtagTweets(todayCashtag)
         formattedTweets = tweets
-        .filter((tweet: any) => tweet.qualityScore > 0)
+        .filter((tweet: any) => tweet.qualityScore > 5)
         .map(
           (tweet) =>
             `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n ${tweet.text}\n---\n`,
