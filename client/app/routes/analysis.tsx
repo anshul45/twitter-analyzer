@@ -160,6 +160,9 @@ const analysis = () => {
           dataSource={tableData.tableData.map((item, index) => ({ key: index, ...item }))}
           columns={tableData.columns}
           pagination={false}
+          scroll={{ x: 1000 }}
+          bordered
+          className="shadow-lg"
         />
       ) : (
         <Flex justify="center" align="center" className="h-96">
@@ -171,12 +174,20 @@ const analysis = () => {
         width={700}
         onClose={() => setOpen(false)}
         open={open}
+        styles={{
+          body: {
+            padding: '24px',
+            background: '#f8fafc'
+          }
+        }}
       >
         <Flex justify="center" className="p-4" align="center">
           {loading ? (
-            <Spin className="mt-64" />
+            <Spin size="large" className="mt-64" />
           ) : (
-            <div className="whitespace-pre-wrap">{summaryText}</div>
+            <div className="whitespace-pre-wrap bg-white p-6 rounded-lg shadow">
+              {summaryText}
+            </div>
           )}
         </Flex>
       </Drawer>
