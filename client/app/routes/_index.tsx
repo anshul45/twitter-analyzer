@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable import/no-unresolved */
 import { MetaFunction } from '@remix-run/node';
 import { useEffect, useState } from 'react';
@@ -21,6 +24,7 @@ interface Filters {
   date: string | null;
   username: string;
   cashtag: string;
+  type: string;
 }
 
 export const meta: MetaFunction = () => {
@@ -40,8 +44,9 @@ export default function Index() {
   const [cashtag, setCashtag] = useState<string>("")
   const [filters, setFilters] = useState({
     date: null,
-    username: 'All',
+    username: 'All', 
     cashtag: '',
+    type: 'All',
   });
   
   const [isFilterChanged, setIsFilterChanged] = useState(false);
@@ -61,8 +66,6 @@ export default function Index() {
   );
 
   const sortedTweets = allTweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
-
-  console.log(filteredData)
 
   useEffect(() => {
     setData(sortedTweets);
@@ -88,8 +91,10 @@ export default function Index() {
           tweet.cashtags.some((tag) =>
             tag.toLowerCase().includes(updatedFilters.cashtag.toLowerCase())
           );
+        const matchesType =
+          updatedFilters.type === 'All' || tweet.type === updatedFilters.type;
   
-        return matchesDate && matchesUsername && matchesCashtag; 
+        return matchesDate && matchesUsername && matchesCashtag && matchesType;
       });
   
    
@@ -118,6 +123,7 @@ export default function Index() {
 
   // Get unique usernames for the username filter dropdown
   const uniqueUsernames:string[] = [...new Set(sortedTweets?.map((tweet :any) => tweet.username))];
+  const uniqueTypes:string[] = [...new Set(sortedTweets?.map((tweet :any) => tweet.type))];
 
   return (
     <>
@@ -152,6 +158,21 @@ export default function Index() {
                     placeholder="Search cashtag"
                     onChange={(e) => handleFilterChange('cashtag', e.target.value)}
                   />
+              </div>
+              <div>
+                <h1 className="font-semibold text-sm">Type</h1>
+                <Select
+                  defaultValue="All"
+                  onChange={(value) => handleFilterChange('type', value)}
+                  style={{ width: 200 }}
+                >
+                  <Select.Option value="All">All</Select.Option>
+                  {uniqueTypes?.map((type) => (
+                    <Select.Option key={type} value={type}>
+                      {type}
+                    </Select.Option>
+                  ))}
+                </Select>
               </div>
               <div>
                 <h1 className="font-semibold text-sm">Summarize</h1>
