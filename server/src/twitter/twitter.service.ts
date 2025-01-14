@@ -107,7 +107,6 @@ export class TwitterService {
         });
       }
 
-      console.log(options.date);
 
       let filteredTweets;
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -470,33 +469,30 @@ export class TwitterService {
   }
 
   async getCashtagCountsByDate(): Promise<void> {  
-    const result = await this.prismaService.$runCommandRaw({
-      aggregate: 'CashtagCount',
-      pipeline: [
-        {
-          $group: {
-            _id: {
-              cashtag: '$cashtag',
-              date: '$date',
-              types:'$types'
-            },
-            totalCount: { $sum: '$count' },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            cashtag: '$_id.cashtag',
-            date: '$_id.date',
-            count: '$totalCount',
-            types:'$_id.types'
-          },
-        },
-      ],
-      cursor: {},
+    const data = await this.prismaService.cashtagCount.findMany({
+      select: {
+        cashtag: true,
+        date: true,
+        types: true,
+        count: true,
+      },
     });
-
-    return (result as any).cursor.firstBatch;
+    
+    const aggregatedResult = data.reduce((acc, curr) => {
+      const key = `${curr.cashtag}_${curr.date}_${curr.types}`;
+      if (!acc[key]) {
+        acc[key] = { 
+          cashtag: curr.cashtag, 
+          date: curr.date, 
+          types: curr.types, 
+          count: 0 
+        };
+      }
+      acc[key].count += curr.count;
+      return acc;
+    }, {});
+    
+    return Object.values(aggregatedResult) as any;
   }
 
   async updateCashtagCounts(date: string, cashtags: { cashtags: string[]; tweetType: string }): Promise<void> {
@@ -602,19 +598,22 @@ export class TwitterService {
   
   async getCashtagTweets(cashtag:string):Promise<TweetInput[]>{
     try{
-      const tweets = await this.prismaService.$runCommandRaw({
-        aggregate: 'Tweet', 
-        pipeline: [
-          {
-            $match: {
-              cashtags: cashtag,
-            },
-          },
-        ],
-        cursor: {},
-      });
+      const tweets1  = await this.prismaService.tweet.findMany()
+      
+      const cashtagtweets = tweets1.filter(tweets => Array.isArray(tweets.cashtags) && tweets.cashtags.includes(cashtag))
+      // const tweets = await this.prismaService.$runCommandRaw({
+      //   aggregate: 'Tweet', 
+      //   pipeline: [
+      //     {
+      //       $match: {
+      //         cashtags: cashtag,
+      //       },
+      //     },
+      //   ],
+      //   cursor: {},
+      // });
 
-      return (tweets as any).cursor?.firstBatch
+      return cashtagtweets as any
     }
     catch (error) {
       console.error('Error getting cashtag tweets:', error);
@@ -626,20 +625,28 @@ export class TwitterService {
   async getTodaysCashtagTweets(cashtag:string):Promise<TweetInput[]>{
     try{
       const today = new Date()
-      const tweets = await this.prismaService.$runCommandRaw({
-        aggregate: 'Tweet', 
-        pipeline: [
-          {
-            $match: {
-              cashtags: cashtag,
-              createdAt:today.toDateString()
-            },
-          },
-        ],
-        cursor: {},
-      });
+      const tweets1 = await this.prismaService.tweet.findMany({
+        where:{
+          createdAt:today.toDateString()
+        }
+      })
+      const cashtagtweets = tweets1.filter(tweets => Array.isArray(tweets.cashtags) && tweets.cashtags.includes(cashtag))
 
-      return (tweets as any).cursor?.firstBatch
+
+      // const tweets = await this.prismaService.$runCommandRaw({
+      //   aggregate: 'Tweet', 
+      //   pipeline: [
+      //     {
+      //       $match: {
+      //         cashtags: cashtag,
+      //         createdAt:today.toDateString()
+      //       },
+      //     },
+      //   ],
+      //   cursor: {},
+      // });
+
+      return cashtagtweets as any
     }
     catch (error) {
       console.error("Error getting today's cashtag tweets:", error);
