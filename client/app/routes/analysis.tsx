@@ -89,8 +89,8 @@ const analysis = () => {
       return {
         cashtag,
         Count: totalCount,
-        Avg: average.toFixed(2),
-        Std_dev: stdDev.toFixed(2),
+        Average: average.toFixed(2),
+        StdDev: stdDev.toFixed(2),
         tweetTypes: Array.from(types),
       };
     });
@@ -108,14 +108,14 @@ const analysis = () => {
         key: 'Count',
       },
       {
-        title: 'Avg',
-        dataIndex: 'Avg',
-        key: 'Avg',
+        title: 'Average',
+        dataIndex: 'Average',
+        key: 'Average',
       },
       {
-        title: 'Std_dev',
-        dataIndex: 'Std_dev',
-        key: 'Std_dev',
+        title: 'StdDev',
+        dataIndex: 'StdDev',
+        key: 'StdDev',
       },
       {
         title: 'Tweet Types',
