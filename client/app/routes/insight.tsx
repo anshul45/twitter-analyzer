@@ -97,6 +97,8 @@ const insight = () => {
         title: 'Count',
         dataIndex: 'Count',
         key: 'Count',
+        sorter: (a: any, b: any) => a.Count - b.Count,
+        defaultSortOrder: 'descend',
       },
       {
         title: 'Summary',
