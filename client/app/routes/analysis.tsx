@@ -23,7 +23,6 @@ const analysis = () => {
     }
   };
 
-  console.log(cashtags.length)
 
   const handleClick = async (cashtag: string) => {
     setSelectedCashtag(cashtag);
@@ -149,7 +148,14 @@ const analysis = () => {
     if (cashtags.length > 0) {
       const { filteredData } = filterTopCashtags(cashtags);
       const generatedTableData = generateTableData(filteredData);
-      setTableData(generatedTableData);
+
+      //descending order
+      const sortedTableData = {
+        ...generatedTableData,
+        tableData: generatedTableData.tableData.sort((a, b) => b.Count - a.Count),
+      };
+  
+      setTableData(sortedTableData);
     }
   }, [cashtags]); // Regenerate table data only when cashtags change
 
