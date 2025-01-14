@@ -11,7 +11,7 @@ export interface TwitterResponse {
   tweets: string[];
   report: string | null;
 }
-const url = "http://localhost:8000" 
+const url = "https://twitter-analyzer.onrender.com" 
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
