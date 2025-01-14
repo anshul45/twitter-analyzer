@@ -62,6 +62,7 @@ export default function Index() {
 
   const sortedTweets = allTweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
 
+  console.log(filteredData)
 
   useEffect(() => {
     setData(sortedTweets);
@@ -104,7 +105,7 @@ export default function Index() {
     setIsLoadingSummary(true)
     try {
       const result = await getSummary(filteredData);
-      setSummaryText(result?.summary);
+      setSummaryText(result);
     } catch (error) {
       console.error('Error fetching summary:', error)
       setSummaryText('Failed to load summary. Please try again.')

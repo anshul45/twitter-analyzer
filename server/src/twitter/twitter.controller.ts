@@ -27,7 +27,53 @@ export class TwitterController {
       'StockMarketNerd',
       'MCins_',
       'unusual_whales',
+      'EventuallyWLTHY',
+      'ftr_investors',
+      'DataDInvesting',
+      'simpleinvest01',
+      'EarningsHubHQ',
+      'amitisinvesting',
+      'seekvalue1990',
+      'techfund1',
+      'alc2022',
+      'fs_insight',
+      'stocktalkweekly',
+      'mvcinvesting',
+      'Speculator_io',
+      'preetkailon',
+      'StockMKTNewz',
+      'EconomyApp',
+      'borrowed_ideas',
+      'joecarlsonshow',
+      'StockSavvyShay',
+      'SixSigmaCapital',
+      'saxena_puru',
+      'FromValue',
+      'TechFundies',
+      'Kross_Roads',
+      'svarncapital',
+      'RihardJarc',
+      'LogicalThesis',
+      'dixit1978',
+      'derekquick1',
+      'Soumyazen',
+      'KrisPatel99',
+      'Kawcak20',
+      'rhemrajani9',
+      'ecommerceshares',
+      'WallStJesus',
+      'TicTocTick',
+      'Brian_Stoffel_',
+      'MarkNewtonCMT',
+      'gurgavin',
+      'BrianFeroldi',
+      'dhaval_kotecha',
+      'fundamentell',
+      'BigBullCap',
+      'JonahLupton',
+      'mukund'
     ];
+    
     await Promise.all(
       usernames.map(async (user) => {
         try {
@@ -120,10 +166,14 @@ export class TwitterController {
   }
 
   @Post('summary')
-  async generateSummary(@Body() tweets: any): Promise<{ summary: string }> {
-    const summary = await this.twitter.generateSummaryFromTweets(
-      tweets?.tweets,
-    );
+  async generateSummary(
+    @Body() body: { tweets?: any; cashtag?: string; todayCashtag?: string },
+  ): Promise<{ summary: string }> {
+    const { tweets, cashtag, todayCashtag } = body;
+    
+    const summary = await this.twitter.generateSummaryFromTweets(tweets,cashtag,todayCashtag);
+  
     return { summary };
   }
+  
 }

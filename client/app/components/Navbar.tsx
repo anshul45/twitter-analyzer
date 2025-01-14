@@ -16,6 +16,9 @@ const Navbar = () => {
         <Link to="/analysis" className="cursor-pointer text-white">
           Get Analysis
         </Link>
+        <Link to="/insight" className="cursor-pointer text-white">
+          Get Insights
+        </Link>
       </Flex>
       <div></div>
     </Flex>

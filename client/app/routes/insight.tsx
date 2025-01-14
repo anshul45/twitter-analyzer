@@ -2,35 +2,36 @@
 /* eslint-disable import/no-unresolved */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { Button, Drawer, Flex, Spin, Table, Tag } from 'antd';
+import { Button, Drawer, Flex, Spin, Table } from 'antd';
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { getCashtags, getSummary } from '~/common/api.request';
 
-const analysis = () => {
+const insight = () => {
   const [cashtags, setCashtags] = useState<any[]>([]);
   const [tableData, setTableData] = useState<{ tableData: any[]; columns: any[] } | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const [selectedCashtag, setSelectedCashtag] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [summaryText, setSummaryText] = useState<string>('');
+  const [summaryText, setSummaryText] = useState<string>("");
 
   const getData = async () => {
-    try {
-      const data = await getCashtags();
-      setCashtags([...data]); // Ensure state immutability
-    } catch (error) {
-      console.error('Error fetching cashtags:', error);
-    }
+    const data = await getCashtags();
+    setCashtags(data);
   };
 
-  console.log(cashtags.length)
+
 
   const handleClick = async (cashtag: string) => {
     setSelectedCashtag(cashtag);
     setOpen(true);
     setLoading(true);
     try {
-      const result = await getSummary(undefined, cashtag);
+        const today = dayjs()
+
+        console.log(today.toString())
+
+      const result = await getSummary(undefined, undefined,cashtag);
       setSummaryText(result);
     } catch (error) {
       console.error('Error fetching summary:', error);
@@ -40,7 +41,13 @@ const analysis = () => {
     }
   };
 
-  const filterTopCashtags = (data: any[]): { topCashtags: string[]; filteredData: any[] } => {
+  const filterTodaysData = (data: any[]): any[] => {
+    const today = dayjs();
+  
+    return data.filter((item) => dayjs(item.date).isSame(today, 'day'));
+  };
+
+  const filterTopCashtags = (data: any[]): any[] => {
     const groupedData: Record<string, number> = data.reduce((acc, item) => {
       const { cashtag, count } = item;
       acc[cashtag] = (acc[cashtag] || 0) + count;
@@ -49,49 +56,33 @@ const analysis = () => {
 
     const sortedCashtags = Object.entries(groupedData)
       .sort(([, countA], [, countB]) => countB - countA)
-      .slice(0, 5)
       .map(([cashtag]) => cashtag);
 
-    const filteredData = data.filter((item) => sortedCashtags.includes(item.cashtag));
-
-    return { topCashtags: sortedCashtags, filteredData };
+    return data.filter((item) => sortedCashtags.includes(item.cashtag));
   };
 
   const generateTableData = (data: any[]): { tableData: any[]; columns: any[] } => {
-    const groupedData: Record<string, { cashtag: string; counts: number[]; types: Set<string> }> = data.reduce(
-      (acc, item) => {
-        const { cashtag, count, types } = item;
+    const groupedData: Record<string, { cashtag: string; counts: number[]; types: string[] }> = data.reduce((acc, item) => {
+      const { cashtag, count, types } = item;
 
-        if (!acc[cashtag]) {
-          acc[cashtag] = { cashtag, counts: [], types: new Set<string>() };
-        }
+      if (!acc[cashtag]) {
+        acc[cashtag] = { cashtag, counts: [], types: [] };
+      }
 
-        acc[cashtag].counts.push(count || 0);
-        (types || []).forEach((type: string) => acc[cashtag].types.add(type));
+      acc[cashtag].counts.push(count);
+      acc[cashtag].types.push(...(types || []));
 
-        return acc;
-      },
-      {}
-    );
+      return acc;
+    }, {});
 
     const tableData = Object.values(groupedData).map((entry) => {
-      const { cashtag, counts, types } = entry;
+      const { cashtag, counts } = entry;
 
       const totalCount = counts.reduce((sum, val) => sum + val, 0);
-      const average = counts.length ? totalCount / counts.length : 0;
-
-      const variance =
-        counts.length > 1
-          ? counts.reduce((sum, val) => sum + Math.pow(val - average, 2), 0) / (counts.length - 1)
-          : 0;
-      const stdDev = Math.sqrt(variance);
 
       return {
         cashtag,
         Count: totalCount,
-        Avg: average.toFixed(2),
-        Std_dev: stdDev.toFixed(2),
-        tweetTypes: Array.from(types),
       };
     });
 
@@ -108,32 +99,17 @@ const analysis = () => {
         key: 'Count',
       },
       {
-        title: 'Avg',
-        dataIndex: 'Avg',
-        key: 'Avg',
-      },
-      {
-        title: 'Std_dev',
-        dataIndex: 'Std_dev',
-        key: 'Std_dev',
-      },
-      {
-        title: 'Tweet Types',
-        dataIndex: 'tweetTypes',
-        key: 'tweetTypes',
-        render: (tweetTypes: string[]) =>
-          tweetTypes?.map((value: string, idx: number) => (
-            <Tag bordered={false} color="processing" key={idx}>
-              {value}
-            </Tag>
-          )),
-      },
-      {
         title: 'Summary',
         dataIndex: 'summary',
         key: 'summary',
         render: (_: any, record: any) => (
-          <Button onClick={() => handleClick(record.cashtag)}>Get Summary</Button>
+          <Button
+            onClick={() => {
+              handleClick(record.cashtag);
+            }}
+          >
+            Get Summary
+          </Button>
         ),
       },
     ];
@@ -142,16 +118,17 @@ const analysis = () => {
   };
 
   useEffect(() => {
-    getData();
-  }, []);
+    if (cashtags.length > 0) {
+      const todaysData = filterTodaysData(cashtags);
+      const topCashtags = filterTopCashtags(todaysData);
+      const tableData = generateTableData(topCashtags);
+      setTableData(tableData);
+    }
+  }, [cashtags]);
 
   useEffect(() => {
-    if (cashtags.length > 0) {
-      const { filteredData } = filterTopCashtags(cashtags);
-      const generatedTableData = generateTableData(filteredData);
-      setTableData(generatedTableData);
-    }
-  }, [cashtags]); // Regenerate table data only when cashtags change
+    getData();
+  }, []);
 
   return (
     <div className="w-full px-5 pt-2">
@@ -180,4 +157,4 @@ const analysis = () => {
   );
 };
 
-export default analysis;
+export default insight;
