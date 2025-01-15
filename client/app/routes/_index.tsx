@@ -18,6 +18,7 @@ interface Tweet {
   tweetId: string;
   qualityScore: number;
   type: string;
+  id: string;
 }
 
 interface Filters {
@@ -62,8 +63,15 @@ export default function Index() {
       tweetId: tweet.tweetId,
       qualityScore: tweet.qualityScore,
       type: tweet.type,
+      id:tweet.id
     }))
   );
+
+  console.log(tweets?.tweets.slice(0,10))
+
+  const deduplicatedTweets = allTweets.filter(tweets => tweets.tweetId === "1878940088949788984")
+
+  console.log(deduplicatedTweets)
 
   const sortedTweets = allTweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
 
@@ -103,6 +111,8 @@ export default function Index() {
       return updatedFilters; 
     });
   };
+
+
   
 
   const handleSummary = async () => {

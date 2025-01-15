@@ -46,7 +46,7 @@ export class TwitterService {
       throw new Error('Apify API key is required. Set it in environment.');
     }
     this.client = new ApifyClient({ token: apiKey });
-    this.input = { username: '', max_posts: 50 };
+    this.input = { username: '', max_posts: 20 };
   }
   async getReports(): Promise<any> {
     try {
