@@ -1,32 +1,27 @@
 export class DateUtil{
-   static dateOutput = (dateStr:string):string => {
-        const date = new Date(dateStr);  
-        const formattedDate = date.toDateString(); 
-        return formattedDate;
-        }
+  static dateOutput = (dateStr:string):string => {
+       const date = new Date(dateStr);  
+       const formattedDate = date.toDateString(); 
+       return formattedDate;
+       }
 
-    static getCurrentDate = () : string => {
-      const data = new Date();
-      const formattedDate = data.toDateString();
-      return formattedDate;
-    }
+   static getCurrentDate = () : string => {
+     const data = new Date();
+     const formattedDate = data.toDateString();
+     return formattedDate;
+   }
 
-    static getDatesForLastThreeDays = () => {
-        const today = new Date();
-        const formatDate = (date: Date) => {
-          return date.toDateString();
-        };
-      
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        
-        const dayBeforeYesterday = new Date(today);
-        dayBeforeYesterday.setDate(today.getDate() - 2);
-      
-        return [
-          formatDate(today),
-          formatDate(yesterday),
-          formatDate(dayBeforeYesterday),
-        ];
-      };
+   static getDatesForLastSevenDays = (): string[] => {
+     const today = new Date();
+     const formatDate = (date: Date) => date.toDateString();
+   
+     // Generate the last seven days dynamically
+     const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+       const date = new Date(today);
+       date.setDate(today.getDate() - index);
+       return formatDate(date);
+     });
+   
+     return lastSevenDays;
+   };
 }
