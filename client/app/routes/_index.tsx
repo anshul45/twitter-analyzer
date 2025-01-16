@@ -3,11 +3,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable import/no-unresolved */
 import { MetaFunction } from '@remix-run/node';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getRawTweets, getSummary } from '~/common/api.request';
-import { Input, Flex, Select, Space, DatePicker, Button, Modal,Spin } from 'antd';
+import { Input, Flex, Select, Space, DatePicker, Button, Modal,Spin, Drawer } from 'antd';
 import CustomTable from '~/components/Table';
-import { useLoaderData } from '@remix-run/react';
 import dayjs from 'dayjs';
 
 interface Tweet {
@@ -41,8 +40,9 @@ export default function Index() {
   const [openSummaryModal, setOpenSummaryModal] = useState<boolean>(false)
   const [summaryText, setSummaryText] = useState<string>("")
   const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false)
-  const [username, setUsername] = useState<string>("")
-  const [cashtag, setCashtag] = useState<string>("")
+  const [loading, setLoading] = useState<boolean>(false)
+  const [tweets,setTweets] = useState<Tweet[]>([])
+  const [title,setTitle] = useState<string>("")
   const [filters, setFilters] = useState({
     date: null,
     username: 'All', 
@@ -50,42 +50,62 @@ export default function Index() {
     type: 'All',
   });
   
-  const [isFilterChanged, setIsFilterChanged] = useState(false);
 
-  const tweets =  useLoaderData<{ tweets: { tweets: Tweet[] }[] }>();
 
-  const allTweets = tweets?.tweets?.flatMap((entry) =>
-    entry.tweets.map((tweet) => ({
-      cashtags: tweet.cashtags,
-      text: tweet.text,
-      createdAt: tweet.createdAt,
-      username: tweet.username,
-      tweetId: tweet.tweetId,
-      qualityScore: tweet.qualityScore,
-      type: tweet.type,
-      id:tweet.id
-    }))
-  );
+  const getData = async () => {
+    try{
+      setLoading(true)
+      const data = await getRawTweets();
+      setTweets(data.tweets?.flatMap((entry) =>
+        //@ts-ignore
+        entry.tweets.map((tweet:Tweet) => ({
+          cashtags: tweet.cashtags,
+          text: tweet.text,
+          createdAt: tweet.createdAt,
+          username: tweet.username,
+          tweetId: tweet.tweetId,
+          qualityScore: tweet.qualityScore,
+          type: tweet.type,
+          id:tweet.id
+        }))
+      ));
+    }
+      catch (error) {
+        console.error('Error fetching tweets:', error);
+      }
+    
+    finally{
+      setLoading(false)
+    }
+    };
+  
 
-  console.log(tweets?.tweets.slice(0,10))
+  
 
-  const deduplicatedTweets = allTweets.filter(tweets => tweets.tweetId === "1878940088949788984")
 
-  console.log(deduplicatedTweets)
+  useEffect(() => {
+    getData();
+  }, []);
 
-  const sortedTweets = allTweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+  const sortedTweets = useMemo(() => {
+    return tweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+  }, [tweets]);
+
+   
+
+
 
   useEffect(() => {
     setData(sortedTweets);
     setFilteredData(sortedTweets);
-  }, []);
+  }, [sortedTweets]);
+
   
- useEffect(() => {
-    setIsFilterChanged(JSON.stringify(filteredData) !== JSON.stringify(data));
+  const isFilterChanged = useMemo(() => {
+    return JSON.stringify(filteredData) !== JSON.stringify(data);
   }, [filteredData, data]);
 
   const handleFilterChange = (key: keyof Filters, value: string | null) => {
-    // Update the filter state
     setFilters((prevFilters) => {
       const updatedFilters = { ...prevFilters, [key]: value };
   
@@ -105,21 +125,44 @@ export default function Index() {
         return matchesDate && matchesUsername && matchesCashtag && matchesType;
       });
   
-   
+      // Generate a useful title dynamically
+      const generateTitle = () => {
+        const parts: string[] = [];
+  
+        if (updatedFilters.username && updatedFilters.username !== 'All') {
+          parts.push(`Tweets by @${updatedFilters.username}`);
+        }
+        if (updatedFilters.cashtag) {
+          parts.push(`about ${updatedFilters.cashtag.toUpperCase()}`);
+        }
+        if (updatedFilters.date) {
+          parts.push(`on ${dayjs(updatedFilters.date).format('MMM D')}`);
+        }
+        if (updatedFilters.type && updatedFilters.type !== 'All') {
+          parts.push(`(${updatedFilters.type})`);
+        }
+  
+        // Combine parts and return a default if no filters are active
+        return parts.length > 0
+          ? parts.join(' ')
+          : 'Viewing All Tweets';
+      };
+  
+      setTitle(generateTitle());
       setFilteredData(filtered);
   
-      return updatedFilters; 
+      return updatedFilters;
     });
   };
-
-
   
+  
+
 
   const handleSummary = async () => {
     setOpenSummaryModal(true)
     setIsLoadingSummary(true)
     try {
-      const result = await getSummary(filteredData);
+      const result = await getSummary(filteredData,title);
       setSummaryText(result);
     } catch (error) {
       console.error('Error fetching summary:', error)
@@ -132,8 +175,13 @@ export default function Index() {
   
 
   // Get unique usernames for the username filter dropdown
-  const uniqueUsernames:string[] = [...new Set(sortedTweets?.map((tweet :any) => tweet.username))];
-  const uniqueTypes:string[] = [...new Set(sortedTweets?.map((tweet :any) => tweet.type))];
+  const uniqueUsernames = useMemo(() => {
+    return [ ...new Set(sortedTweets.map((tweet) => tweet.username))];
+  }, [sortedTweets]);
+  
+  const uniqueTypes = useMemo(() => {
+    return [ ...new Set(sortedTweets.map((tweet) => tweet.type))];
+  }, [sortedTweets]);
 
   return (
     <>
@@ -192,11 +240,18 @@ export default function Index() {
           </div>
         </Flex>
         <div className="mt-2">
-          <CustomTable tweets={filteredData} />
+        {loading ? (
+  <Flex justify="center" align="center" className="h-96">
+    <Spin size="large" />
+  </Flex>
+) : (
+  <CustomTable tweets={filteredData} />
+)}
         </div>
       </div>
-      <Modal 
+      {/* <Modal 
         width={800} 
+        style={{overflowY:"auto"}}
         open={openSummaryModal} 
         onCancel={() => setOpenSummaryModal(false)} 
         footer={<Button onClick={() => setOpenSummaryModal(false)}>Close</Button>}
@@ -208,12 +263,28 @@ export default function Index() {
             <div className="whitespace-pre-wrap">{summaryText}</div>
           )}
         </Flex>
-      </Modal>
+      </Modal> */}
+      <Drawer
+        width={700}
+        onClose={() => setOpenSummaryModal(false)}
+        open={openSummaryModal}
+        styles={{
+          body: {
+            padding: '24px',
+            background: '#f8fafc'
+          }
+        }}
+      >
+        <Flex justify="center" className="p-4" align="center">
+          {isLoadingSummary ? (
+            <Spin className="mt-64" />
+          ) : (
+            <div className="whitespace-pre-wrap bg-white p-6 rounded-lg shadow">
+            {summaryText}
+          </div>
+          )}
+        </Flex>
+      </Drawer>
     </>
   );
-}
-
-export async function loader() {
-  const res = await getRawTweets();
-  return res;
 }

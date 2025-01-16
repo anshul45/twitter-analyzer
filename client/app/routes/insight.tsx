@@ -5,7 +5,7 @@
 import { Button, Drawer, Flex, Spin, Table } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import { getCashtags, getSummary } from '~/common/api.request';
+import { getCashtags, getSummaryForCashtag } from '~/common/api.request';
 
 const insight = () => {
   const [cashtags, setCashtags] = useState<any[]>([]);
@@ -29,9 +29,8 @@ const insight = () => {
     try {
         const today = dayjs()
 
-        console.log(today.toString())
 
-      const result = await getSummary(undefined, undefined,cashtag);
+      const result = await getSummaryForCashtag(cashtag);
       setSummaryText(result);
     } catch (error) {
       console.error('Error fetching summary:', error);

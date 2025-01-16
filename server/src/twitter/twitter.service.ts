@@ -28,6 +28,7 @@ interface TweetInput {
   text: string;
   tweetId: string;
   username: string;
+  type:string
 }
 
 @Injectable()
@@ -112,20 +113,20 @@ export class TwitterService {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       cashtag
         ? (filteredTweets = allUserTweets
-            .map((user: { tweets: any[] }) => {
-              const matchingTweets = user.tweets.filter((tweet) => {
-                return (
-                  Array.isArray(tweet.cashtags) &&
-                  tweet.cashtags.includes(cashtag.toUpperCase())
-                );
-              });
+          .map((user: { tweets: any[] }) => {
+            const matchingTweets = user.tweets.filter((tweet) => {
+              return (
+                Array.isArray(tweet.cashtags) &&
+                tweet.cashtags.includes(cashtag.toUpperCase())
+              );
+            });
 
-              return {
-                ...user,
-                tweets: matchingTweets,
-              };
-            })
-            .filter((user) => user.tweets.length > 0))
+            return {
+              ...user,
+              tweets: matchingTweets,
+            };
+          })
+          .filter((user) => user.tweets.length > 0))
         : (filteredTweets = null);
 
       // const oneDayTweets = await this.prismaService.tweetDate.findMany({
@@ -409,6 +410,7 @@ export class TwitterService {
     }
   }
 
+
   async saveReport(date: string, cashtag: string) {
     try {
       const allUserTweets = await this.prismaService.tweetDate.findMany({
@@ -468,7 +470,7 @@ export class TwitterService {
     }
   }
 
-  async getCashtagCountsByDate(): Promise<void> {  
+    async getCashtagCountsByDate(): Promise<void> {  
 
     const dates = DateUtil.getDatesForLastSevenDays()
 
@@ -551,53 +553,53 @@ export class TwitterService {
   }
 
   async generateSummaryFromTweets(
-    tweets?: TweetInput[],
-    cashtag?: string,
-    todayCashtag?: string,
+    tweets: TweetInput[],
+    title:string,
   ): Promise<string> {
     try {
       // Format tweets for OpenAI
-      let formattedTweets;
-      if (tweets) {
-        formattedTweets = tweets
+
+    const formattedTweets = tweets
           .filter((tweet: any) => tweet.qualityScore > 5)
           .map(
             (tweet) =>
-              `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n ${tweet.text}\n---\n`,
+              `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId}\n tweet_type: ${tweet.type} \n cashtags: ${tweet.cashtags.join(', ')} \n url: https://x.com/${tweet.username}/status/${tweet.tweetId} \n ${tweet.text}\n---\n`,
           )
           .join('\n');
-      } else if (cashtag) {
-        const tweets = await this.getCashtagTweets(cashtag);
-        formattedTweets = tweets
-          .filter((tweet: any) => tweet.qualityScore > 5)
-          .map(
-            (tweet) =>
-              `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n ${tweet.text}\n---\n`,
-          )
-          .join('\n');
-      } else {
-        const tweets = await this.getTodaysCashtagTweets(todayCashtag);
-        formattedTweets = tweets
-          .filter((tweet: any) => tweet.qualityScore > 5)
-          .map(
-            (tweet) =>
-              `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n ${tweet.text}\n---\n`,
-          )
-          .join('\n');
-      }
 
       if (formattedTweets.length == 0) {
-        return 'No relevant tweets found';
+        return 'Sorry, No relevant tweets with quality score greater than 5 found';
       }
 
       const response = await this.openAiService.generateResponse(
         formattedTweets,
-        `I use X (previously Twitter) to stay on top of news related to publicly traded companies. 
-         Below are a few tweets from [date] for [$cashtag]. Can you help summarize the top takeaways? 
+        `
+        I use X (previously Twitter) to stay on top of news related to publicly traded companies.
+        Below are a few tweets (including URLs) from [date] for [$cashtags] and [tweet_type]. Can you help summarize the top takeaways and add url of tweets?
         [Dedupe for redundant topics across tweets]
-        [Include your perspective on what it means for [$cashtag] - bullish or bearish for the stock price, implications on the company's long-term prospects.] 
-        `,
+        [Include your perspective on what it means for [$cashtags] and [tweet_type] it should be generic not related to cashtags and tweet_type - bullish or bearish for the stock price, implications on the company's long-term prospects.]
+        Tweet URLs:[Insert Tweet URLs here]
+        `, 
       );
+
+      if(response.content){
+        await this.prismaService.summary.create({
+          data: {
+            date: DateUtil.getCurrentDate(),  
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            homepagesummaries: {
+              connectOrCreate: {
+                where: { title: title },  
+                create: { 
+                  title: title, 
+                  description: response.content as string,
+                },
+              },
+            },
+          },
+        });
+      }
 
       return response.content as string;
     } catch (error) {
@@ -605,11 +607,68 @@ export class TwitterService {
       throw new Error('Failed to generate summary from tweets');
     }
   }
-  
-  async getCashtagTweets(cashtag:string):Promise<TweetInput[]>{
-    try{
-      const tweets1  = await this.prismaService.tweet.findMany()
+
+  async generateSummaryFromCashtag(
+    cashtag: string,
+  ): Promise<string> {
+    try {
+      // Format tweets for OpenAI
+        const tweets = await this.getCashtagTweets(cashtag);
+        const formattedTweets = tweets
+          .filter((tweet: any) => tweet.qualityScore > 5)
+          .map(
+            (tweet) =>
+              `Tweet by @${tweet.username}:\n tweetId: ${tweet.tweetId} \n cashtags: ${tweet.cashtags.join(', ')} \n url: https://x.com/${tweet.username}/status/${tweet.tweetId} \n ${tweet.text}\n---\n`,
+          )
+          .join('\n');
+
+      if (formattedTweets.length == 0) {
+        return 'Sorry, No relevant tweets with quality score greater than 5 found';
+      }
+
+      const response = await this.openAiService.generateResponse(
+        formattedTweets,
+        `
+        I use X (previously Twitter) to stay on top of news related to publicly traded companies.
+        Below are a few tweets (including URLs) from [date] for [$cashtag]. Can you help summarize the top takeaways and add url of tweets?
+        [Dedupe for redundant topics across tweets]
+        [Include your perspective on what it means for [$cashtag] - bullish or bearish for the stock price, implications on the company's long-term prospects.]
+        Tweet URLs:[Insert all Tweet URLs here]
+        `,
+      );
+
       
+
+      //todo
+await this.prismaService.summary.create({
+  data: {
+    date: DateUtil.getCurrentDate(),  
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    analysispagesummaries: {
+      connectOrCreate: {
+        where: { title: cashtag },  
+        create: { 
+          title: cashtag, 
+          description: response.content as string,
+        },
+      },
+    },
+  },
+});
+
+      
+      return response.content as string;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      throw new Error('Failed to generate summary from tweets');
+    }
+  }
+
+  async getCashtagTweets(cashtag: string): Promise<TweetInput[]> {
+    try {
+      const tweets1 = await this.prismaService.tweet.findMany()
+
       const cashtagtweets = tweets1.filter(tweets => Array.isArray(tweets.cashtags) && tweets.cashtags.includes(cashtag))
       // const tweets = await this.prismaService.$runCommandRaw({
       //   aggregate: 'Tweet', 
@@ -631,35 +690,53 @@ export class TwitterService {
     }
   }
 
-  async getTodaysCashtagTweets(cashtag:string):Promise<TweetInput[]>{
-    try{
-      const today = new Date()
-      const tweets1 = await this.prismaService.tweet.findMany({
-        where:{
-          createdAt:today.toDateString()
-        }
-      })
-      const cashtagtweets = tweets1.filter(tweets => Array.isArray(tweets.cashtags) && tweets.cashtags.includes(cashtag))
-
-
-      // const tweets = await this.prismaService.$runCommandRaw({
-      //   aggregate: 'Tweet', 
-      //   pipeline: [
-      //     {
-      //       $match: {
-      //         cashtags: cashtag,
-      //         createdAt:today.toDateString()
-      //       },
-      //     },
-      //   ],
-      //   cursor: {},
-      // });
-
-      return cashtagtweets as any
-    }
-    catch (error) {
-      console.error("Error getting today's cashtag tweets:", error);
-      throw new Error("Failed to get today's cashtag tweets");
+  async getTweetsSummary(): Promise<any[]> {
+    try {
+      const summaryWithAnalysis = await this.prismaService.summary.findMany({
+        include: {
+          analysispagesummaries: true,  
+          homepagesummaries:true
+        },
+      });  
+      return summaryWithAnalysis;
+    } catch (error) {
+      console.error('Error getting analysis pages summaries:', error);
+      throw new Error('Failed to get analysis pages summaries');
     }
   }
+  
+  
+
+
+  // async getTodaysCashtagTweets(cashtag: string): Promise<TweetInput[]> {
+  //   try {
+  //     const today = new Date()
+  //     const tweets1 = await this.prismaService.tweet.findMany({
+  //       where: {
+  //         createdAt: today.toDateString()
+  //       }
+  //     })
+  //     const cashtagtweets = tweets1.filter(tweets => Array.isArray(tweets.cashtags) && tweets.cashtags.includes(cashtag))
+
+
+  //     // const tweets = await this.prismaService.$runCommandRaw({
+  //     //   aggregate: 'Tweet', 
+  //     //   pipeline: [
+  //     //     {
+  //     //       $match: {
+  //     //         cashtags: cashtag,
+  //     //         createdAt:today.toDateString()
+  //     //       },
+  //     //     },
+  //     //   ],
+  //     //   cursor: {},
+  //     // });
+
+  //     return cashtagtweets as any
+  //   }
+  //   catch (error) {
+  //     console.error("Error getting today's cashtag tweets:", error);
+  //     throw new Error("Failed to get today's cashtag tweets");
+  //   }
+  // }
 }

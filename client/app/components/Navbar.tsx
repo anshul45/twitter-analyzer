@@ -10,14 +10,14 @@ const Navbar = () => {
         <Link to="/" className="cursor-pointer text-white">
           Home
         </Link>
-        <Link to="/filterdata" className="cursor-pointer text-white">
+        {/* <Link to="/report" className="cursor-pointer text-white">
           Generate Report
-        </Link>
+        </Link> */}
         <Link to="/analysis" className="cursor-pointer text-white">
           Get Analysis
         </Link>
-        <Link to="/insight" className="cursor-pointer text-white">
-          Get Insights
+        <Link to="/summary" className="cursor-pointer text-white">
+          Summary
         </Link>
       </Flex>
       <div></div>
