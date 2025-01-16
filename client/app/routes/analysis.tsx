@@ -2,7 +2,7 @@
 /* eslint-disable import/no-unresolved */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { Button, Drawer, Flex, Spin, Table, Tag } from 'antd';
+import { Table, Spin, Flex, Button, Drawer } from 'antd';
 import { useEffect, useState } from 'react';
 import { getCashtags, getSummary } from '~/common/api.request';
 
@@ -14,15 +14,15 @@ const analysis = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [summaryText, setSummaryText] = useState<string>('');
 
+  
   const getData = async () => {
     try {
       const data = await getCashtags();
-      setCashtags([...data]); // Ensure state immutability
+      setCashtags([data]);
     } catch (error) {
       console.error('Error fetching cashtags:', error);
     }
   };
-
 
   const handleClick = async (cashtag: string) => {
     setSelectedCashtag(cashtag);
@@ -39,60 +39,65 @@ const analysis = () => {
     }
   };
 
-  const filterTopCashtags = (data: any[]): { topCashtags: string[]; filteredData: any[] } => {
-    const groupedData: Record<string, number> = data.reduce((acc, item) => {
-      const { cashtag, count } = item;
-      acc[cashtag] = (acc[cashtag] || 0) + count;
-      return acc;
-    }, {});
+  const calculateStats = (allData: any[], cashtag: string) => {
+    const cashtagData = allData.filter((item) => item.cashtag === cashtag);
+    const counts = cashtagData.map((item) => item.count || 0);
 
-    const sortedCashtags = Object.entries(groupedData)
-      .sort(([, countA], [, countB]) => countB - countA)
-      .slice(0, 5)
-      .map(([cashtag]) => cashtag);
+    const avg = counts.reduce((sum, count) => sum + count, 0) / counts.length;
+    const stdDev = Math.sqrt(
+      counts.reduce((sum, count) => sum + Math.pow(count - avg, 2), 0) / counts.length
+    );
 
-    const filteredData = data.filter((item) => sortedCashtags.includes(item.cashtag));
-
-    return { topCashtags: sortedCashtags, filteredData };
+    return { avg, stdDev };
   };
 
-  const generateTableData = (data: any[]): { tableData: any[]; columns: any[] } => {
-    const groupedData: Record<string, { cashtag: string; counts: number[]; types: Set<string> }> = data.reduce(
+
+  const formatDate = (dateStr:string) => {
+    const date = new Date(dateStr);
+    const day = date.getDate();  
+    const month = date.toLocaleString('default', { month: 'short' }); 
+  
+    return `${day} ${month}`;
+  };
+
+
+  const generateTableData = (data: any[], allData: any[]): { tableData: any[]; columns: any[] } => {
+    const uniqueDates = Array.from(new Set(data?.map((item) => item.date)))
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  
+
+    // Group data by cashtag and map counts to dates
+    const groupedData: Record<string, { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number }> = data.reduce(
       (acc, item) => {
-        const { cashtag, count, types } = item;
+        const { cashtag, date, count } = item;
 
         if (!acc[cashtag]) {
-          acc[cashtag] = { cashtag, counts: [], types: new Set<string>() };
+          const stats = calculateStats(allData, cashtag);
+          acc[cashtag] = { cashtag, dateCounts: {}, avg: stats.avg, stdDev: stats.stdDev };
         }
 
-        acc[cashtag].counts.push(count || 0);
-        (types || []).forEach((type: string) => acc[cashtag].types.add(type));
+        acc[cashtag].dateCounts[date] = (acc[cashtag].dateCounts[date] || 0) + (count || 0);
 
         return acc;
       },
       {}
     );
 
-    const tableData = Object.values(groupedData).map((entry) => {
-      const { cashtag, counts, types } = entry;
-
-      const totalCount = counts.reduce((sum, val) => sum + val, 0);
-      const average = counts.length ? totalCount / counts.length : 0;
-
-      const variance =
-        counts.length > 1
-          ? counts.reduce((sum, val) => sum + Math.pow(val - average, 2), 0) / (counts.length - 1)
-          : 0;
-      const stdDev = Math.sqrt(variance);
+    // Prepare table data
+    const tableData = Object.values(groupedData)?.map((entry) => {
+      const { cashtag, dateCounts, avg, stdDev } = entry;
 
       return {
         cashtag,
-        Count: totalCount,
-        Average: average.toFixed(2),
-        StdDev: stdDev.toFixed(2),
-        tweetTypes: Array.from(types),
+        avg: avg.toFixed(2),
+        std_dev: stdDev.toFixed(2),
+        ...uniqueDates.reduce((acc, date) => {
+          acc[date] = dateCounts[date] || 0;
+          return acc;
+        }, {}),
       };
     });
+
 
     const columns = [
       {
@@ -101,38 +106,28 @@ const analysis = () => {
         key: 'cashtag',
         fixed: 'left',
       },
+      ...uniqueDates?.map((date) => ({
+        title: formatDate(date),
+        dataIndex: date,
+        key: date,
+        width:100
+      })),
       {
-        title: 'Count',
-        dataIndex: 'Count',
-        key: 'Count',
+        title: 'Avg',
+        dataIndex: 'avg',
+        key: 'avg',
       },
       {
-        title: 'Average',
-        dataIndex: 'Average',
-        key: 'Average',
-      },
-      {
-        title: 'StdDev',
-        dataIndex: 'StdDev',
-        key: 'StdDev',
-      },
-      {
-        title: 'Tweet Types',
-        dataIndex: 'tweetTypes',
-        key: 'tweetTypes',
-        render: (tweetTypes: string[]) =>
-          tweetTypes?.map((value: string, idx: number) => (
-            <Tag bordered={false} color="processing" key={idx}>
-              {value}
-            </Tag>
-          )),
+        title: 'Std Dev',
+        dataIndex: 'std_dev',
+        key: 'std_dev',
       },
       {
         title: 'Summary',
         dataIndex: 'summary',
         key: 'summary',
         render: (_: any, record: any) => (
-          <Button onClick={() => handleClick(record.cashtag)}>Get Summary</Button>
+          <Button onClick={() => handleClick(record.cashtag)} type='link'>Get Summary</Button>
         ),
       },
     ];
@@ -146,24 +141,20 @@ const analysis = () => {
 
   useEffect(() => {
     if (cashtags.length > 0) {
-      const { filteredData } = filterTopCashtags(cashtags);
-      const generatedTableData = generateTableData(filteredData);
+      const generatedTableData = generateTableData(cashtags[0].sevenDaysdata, cashtags[0].allData);
 
-      //descending order
-      const sortedTableData = {
+      setTableData({
         ...generatedTableData,
-        tableData: generatedTableData.tableData.sort((a, b) => b.Count - a.Count),
-      };
-  
-      setTableData(sortedTableData);
+        tableData: generatedTableData.tableData.sort((a, b) => b[Object.keys(b)[1]] - a[Object.keys(a)[1]]), // Sort by the first date column
+      });
     }
-  }, [cashtags]); // Regenerate table data only when cashtags change
+  }, [cashtags])
 
   return (
     <div className="w-full px-5 pt-2">
       {tableData ? (
         <Table
-          dataSource={tableData.tableData.map((item, index) => ({ key: index, ...item }))}
+          dataSource={tableData.tableData?.map((item, index) => ({ key: index, ...item }))}
           columns={tableData.columns}
           pagination={false}
           scroll={{ x: 1000 }}

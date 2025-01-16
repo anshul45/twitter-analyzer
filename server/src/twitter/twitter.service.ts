@@ -469,30 +469,37 @@ export class TwitterService {
   }
 
   async getCashtagCountsByDate(): Promise<void> {  
-    const data = await this.prismaService.cashtagCount.findMany({
+
+    const dates = DateUtil.getDatesForLastSevenDays()
+
+    const sevenDaysdata = await this.prismaService.cashtagCount.findMany({
       select: {
         cashtag: true,
         date: true,
         types: true,
         count: true,
       },
+      where:{
+        date:{
+          in:dates
+        }
+      }
+    });
+
+    
+    const allData = await this.prismaService.cashtagCount.findMany({
+      select: {
+        cashtag: true,
+        date: true,
+        types: true,
+        count: true,
+      }
     });
     
-    const aggregatedResult = data.reduce((acc, curr) => {
-      const key = `${curr.cashtag}_${curr.date}_${curr.types}`;
-      if (!acc[key]) {
-        acc[key] = { 
-          cashtag: curr.cashtag, 
-          date: curr.date, 
-          types: curr.types, 
-          count: 0 
-        };
-      }
-      acc[key].count += curr.count;
-      return acc;
-    }, {});
-    
-    return Object.values(aggregatedResult) as any;
+    return ({
+      sevenDaysdata,
+      allData
+    }) as any;
   }
 
   async updateCashtagCounts(
