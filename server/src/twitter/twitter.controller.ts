@@ -92,7 +92,6 @@ export class TwitterController {
     @Query('username') username?: string,
   ) {
     try {
-      console.log('processing text');
       const { tweets, report } = await this.twitter.getAnalysis(cashtag, {
         date,
         username,
@@ -164,18 +163,45 @@ export class TwitterController {
     }
   }
 
+
+  @Get('summary')
+  async getSummary() {
+    try {
+      const summary = await this.twitter.getTweetsSummary()
+      return summary;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: 'Error fetching reports',
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('summary')
   async generateSummary(
-    @Body() body: { tweets?: any; cashtag?: string; todayCashtag?: string },
+    @Body() body: { tweets: any; title:string},
   ): Promise<{ summary: string }> {
-    const { tweets, cashtag, todayCashtag } = body;
-
+    const { tweets, title} = body;
     const summary = await this.twitter.generateSummaryFromTweets(
       tweets,
-      cashtag,
-      todayCashtag,
+      title
     );
 
+    return { summary };
+  }
+
+  @Post('summary/cashtag')
+  async generateCashtagSummary(
+    @Body() body: { cashtag: string;},
+  ): Promise<{ summary: string }> {
+    const { cashtag} = body;
+    const summary = await this.twitter.generateSummaryFromCashtag(
+      cashtag,
+    );
     return { summary };
   }
 }

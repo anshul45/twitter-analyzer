@@ -79,13 +79,12 @@ export const getRawTweets = async (): Promise<TwitterResponse> => {
   }
 };
 
-export const getSummary = async (filteredData?: any,cashtag?:string,todayCashtag?:string): Promise<string> => {
+export const getSummary = async (filteredData: any,title:string): Promise<string> => {
   try {
     const response = await axios.post(
       `${url}/twitter/summary`,
       { tweets: filteredData,
-        cashtag:cashtag,
-        todayCashtag:todayCashtag
+        title
        }
     );
     return response.data.summary;
@@ -100,4 +99,39 @@ export const getSummary = async (filteredData?: any,cashtag?:string,todayCashtag
   }
 };
 
+export const getSummaryForCashtag = async (cashtag?:string): Promise<string> => {
+  try {
+    const response = await axios.post(
+      `${url}/twitter/summary/cashtag`,
+      { 
+        cashtag:cashtag,
+       }
+    );
+    return response.data.summary;
 
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching summary:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error fetching summary:', error);
+    }
+    throw error;
+  }
+};
+
+export const getAllSummary = async (): Promise<any[]> => {
+  try {
+    const response = await axios.get(
+      `${url}/twitter/summary`
+    );
+    return response.data;
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching summary:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error fetching summary:', error);
+    }
+    throw error;
+  }
+};

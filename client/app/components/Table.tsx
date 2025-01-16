@@ -54,7 +54,7 @@ const columns: TableProps<DataType>['columns'] = [
     key: 'tweetUrl',
     dataIndex: 'tweetUrl',
     render: (url) => <a href={url} target="_blank" rel="noopener noreferrer">View Tweet</a>,
-    width: 100,
+    width: 110,
   },
   {
     title: 'Quality Score',

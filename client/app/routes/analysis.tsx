@@ -4,7 +4,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { Table, Spin, Flex, Button, Drawer } from 'antd';
 import { useEffect, useState } from 'react';
-import { getCashtags, getSummary } from '~/common/api.request';
+import { getCashtags, getSummaryForCashtag } from '~/common/api.request';
 
 const analysis = () => {
   const [cashtags, setCashtags] = useState<any[]>([]);
@@ -12,16 +12,21 @@ const analysis = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [selectedCashtag, setSelectedCashtag] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isLoadingcashtag,setIsLoadingcashtag]= useState<boolean>(false);
   const [summaryText, setSummaryText] = useState<string>('');
 
   
   const getData = async () => {
     try {
+      setIsLoadingcashtag(true)
       const data = await getCashtags();
       setCashtags([data]);
     } catch (error) {
       console.error('Error fetching cashtags:', error);
     }
+  finally{
+    setIsLoadingcashtag(false)
+  }
   };
 
   const handleClick = async (cashtag: string) => {
@@ -29,7 +34,7 @@ const analysis = () => {
     setOpen(true);
     setLoading(true);
     try {
-      const result = await getSummary(undefined, cashtag);
+      const result = await getSummaryForCashtag(cashtag);
       setSummaryText(result);
     } catch (error) {
       console.error('Error fetching summary:', error);
@@ -152,15 +157,19 @@ const analysis = () => {
 
   return (
     <div className="w-full px-5 pt-2">
-      {tableData ? (
+      {!isLoadingcashtag ? (
+        <>
+        {tableData &&
         <Table
-          dataSource={tableData.tableData?.map((item, index) => ({ key: index, ...item }))}
-          columns={tableData.columns}
-          pagination={false}
-          scroll={{ x: 1000 }}
-          bordered
-          className="shadow-lg"
+        dataSource={tableData.tableData?.map((item, index) => ({ key: index, ...item }))}
+        columns={tableData.columns}
+        pagination={false}
+        scroll={{ x: 1000 }}
+        bordered
+        className="shadow-lg"
         />
+      }
+      </>  
       ) : (
         <Flex justify="center" align="center" className="h-96">
           <Spin size="large" />

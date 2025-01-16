@@ -60,11 +60,21 @@ export default function GenerateReport() {
     }
   };
 
+  const getUniqueDates = (reports: DailyReport[]) => {
+    const uniqueDatesMap = new Map();
+    reports.forEach((report) => {
+      if (!uniqueDatesMap.has(report.date)) {
+        uniqueDatesMap.set(report.date, report);
+      }
+    });
+    return Array.from(uniqueDatesMap.values());
+  };
+
   const filteredReports = date
-    ? dailyReports
-        .filter((report) => dayjs(report.date).isSame(date, 'day'))
-        .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
-    : dailyReports.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
+    ? getUniqueDates(
+        dailyReports.filter((report) => dayjs(report.date).isSame(date, 'day'))
+      ).sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
+    : getUniqueDates(dailyReports).sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
 
   const showModal = (content: string) => {
     setModalContent(content);
@@ -101,7 +111,7 @@ export default function GenerateReport() {
         </div>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="px-5 py-2">
@@ -138,7 +148,7 @@ export default function GenerateReport() {
           loading={loading}
           pagination={false}
           bordered
-          rowKey="date"
+          rowKey="id"
         />
       </div>
 
@@ -156,5 +166,5 @@ export default function GenerateReport() {
         <div style={{ whiteSpace: 'pre-wrap' }}>{modalContent}</div>
       </Modal>
     </div>
-  )
+  );
 }

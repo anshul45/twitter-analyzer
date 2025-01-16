@@ -55,3 +55,25 @@ model CashtagCount {
   updatedAt   DateTime @updatedAt
   @@unique([cashtag, date])
 }
+
+model SummaryObject {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String    @unique
+  description String
+  summaryId   String?   @db.ObjectId
+  analysisId  String?   @db.ObjectId
+  summary     Summary?  @relation("HomepageSummaries", fields: [summaryId], references: [id])
+  analysis    Summary?  @relation("AnalysisSummaries", fields: [analysisId], references: [id])
+}
+
+model Summary {
+  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
+  date                 String         @unique
+  homepagesummaries    SummaryObject[]  @relation("HomepageSummaries")
+  analysispagesummaries SummaryObject[]  @relation("AnalysisSummaries")
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+
+
