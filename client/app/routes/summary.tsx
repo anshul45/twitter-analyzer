@@ -1,27 +1,47 @@
-import { Table, Drawer, Button, Flex, Spin } from 'antd';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable import/no-unresolved */
+import { Table, Drawer, Button, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { getAllSummary } from '~/common/api.request';
 import { ColumnType } from 'antd/es/table';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-// Define types for the data
 interface Summary {
   date: string;
-  homepagesummaries: { title: string; description: string }[];
-  analysispagesummaries: { title: string; description: string }[];
+  title: string;
+  description: string;
+  source: string;
+  type: 'homepage' | 'analysis';
 }
 
 const SummaryTable = () => {
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
-  const [drawerContent, setDrawerContent] = useState<string>('');
+  const [drawerRecord, setDrawerRecord] = useState<Summary | null>(null);
   const [data, setData] = useState<Summary[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   const getSummaries = async () => {
     setLoading(true);
     try {
-      const response = await getAllSummary(); 
-      const groupedData = groupDataByDate(response);
-      setData(groupedData);
+      const response = await getAllSummary();
+      const flattenedData = response.flatMap(item => [
+        ...item.homepagesummaries.map((summary: any) => ({
+          date: item.date,
+          title: summary.title,
+          description: summary.description,
+          source: item.source,
+          type: 'homepage'
+        })),
+        ...item.analysispagesummaries.map((summary: any) => ({
+          date: item.date,
+          title: summary.title,
+          description: summary.description,
+          source: item.source,
+          type: 'analysis'
+        }))
+      ]);
+      setData(flattenedData);
     } catch (error) {
       console.error('Failed to fetch summaries:', error);
     } finally {
@@ -29,41 +49,12 @@ const SummaryTable = () => {
     }
   };
 
-  // Group data by date
-  const groupDataByDate = (data: any[]): Summary[] => {
-    const groupedData: Summary[] = [];
-
-    data.forEach((item) => {
-      const existingDate = groupedData.find((group) => group.date === item.date);
-
-      if (existingDate) {
-        existingDate.homepagesummaries = [
-          ...existingDate.homepagesummaries,
-          ...item.homepagesummaries,
-        ];
-        existingDate.analysispagesummaries = [
-          ...existingDate.analysispagesummaries,
-          ...item.analysispagesummaries,
-        ];
-      } else {
-        groupedData.push({
-          date: item.date,
-          homepagesummaries: item.homepagesummaries,
-          analysispagesummaries: item.analysispagesummaries,
-        });
-      }
-    });
-
-    return groupedData;
-  };
-
   useEffect(() => {
     getSummaries();
   }, []);
 
-  // Function to handle opening the drawer
-  const showDrawer = (description: string) => {
-    setDrawerContent(description);
+  const showDrawer = (record: Summary) => {
+    setDrawerRecord(record);
     setDrawerVisible(true);
   };
 
@@ -71,39 +62,32 @@ const SummaryTable = () => {
     setDrawerVisible(false);
   };
 
-  const renderSummaries = (summaries: { title: string; description: string }[]) => (
-    <Flex wrap>
-      {summaries.map((summary, index) => (
-        <Button
-          key={index}
-          type="link"
-          onClick={() => showDrawer(summary.description)}
-        >
-          {summary.title}
-        </Button>
-      ))}
-    </Flex>
-  );
-
   const columns: ColumnType<Summary>[] = [
     {
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
       width: 200,
-      fixed: 'left' as const, // Use 'as const' for fixed values to avoid TypeScript errors
+      fixed: 'left' as const,
     },
     {
-      title: 'Homepage Summary',
-      dataIndex: 'homepagesummaries',
-      key: 'homepagesummaries',
-      render: renderSummaries,
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      width: 120,
+      render: (type: string) => (
+        <span className="capitalize">{type}</span>
+      ),
     },
     {
-      title: 'Analysis Summary',
-      dataIndex: 'analysispagesummaries',
-      key: 'analysispagesummaries',
-      render: renderSummaries,
+      title: 'Summary',
+      dataIndex: 'title',
+      key: 'title',
+      render: (title: string, record: Summary) => (
+        <Button type="link" onClick={() => showDrawer(record)}>
+          {title}
+        </Button>
+      ),
     },
   ];
 
@@ -127,7 +111,26 @@ const SummaryTable = () => {
           }
         }}
       >
-        <div className="whitespace-pre-wrap bg-white p-6 rounded-lg shadow">{drawerContent}</div>
+        <div className="bg-white p-6 rounded-lg shadow markdown-body">
+          {drawerRecord && (
+            <>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{drawerRecord.description}</ReactMarkdown>
+              {drawerRecord.source && (
+                <div className="mt-4">
+                  <span className="font-medium">Source: </span>
+                  <a 
+                    href={drawerRecord.source} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {drawerRecord.source}
+                  </a>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </Drawer>
     </div>
   );
