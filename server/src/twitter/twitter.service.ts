@@ -200,8 +200,15 @@ export class TwitterService {
           });
         }
 
-        for (const tweet of tweetsForDate) {
+        await Promise.all(
+          tweetsForDate.map(async (tweet) => {
           // classify tweet cashtag
+          const isTweet = await this.prismaService.tweet.findUnique({
+            where:{
+              tweetId:tweet.tweetId
+            }
+          })
+          if(!isTweet){
           const tweetsCashtags = await this.openAiService.generateResponse(
             `classify ${tweet.text} into cashtag category.`,
             `You are a helpful AI that determines if tweets belongs to any twitter cashtags and assign qualityScore. 
@@ -233,12 +240,12 @@ export class TwitterService {
             },
           );
 
-          const cashtags = tweetsCashtags?.content;
+         const cashtags = tweetsCashtags?.content;
 
           // store cashtag count in the database by date
           //@ts-ignore
           await this.updateCashtagCounts(date, cashtags);
-
+        
           await this.prismaService.tweet.upsert({
             where: { tweetId: tweet.tweetId },
             update: {},
@@ -256,8 +263,10 @@ export class TwitterService {
             },
           });
         }
-      }
+      })
+    )
 
+    }
       console.log(`Tweets successfully saved for username: ${username}`);
     } catch (error) {
       console.error('Error saving tweets:', error);
