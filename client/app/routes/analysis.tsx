@@ -5,6 +5,8 @@
 import { Table, Spin, Flex, Button, Drawer } from 'antd';
 import { useEffect, useState } from 'react';
 import { getCashtags, getSummaryForCashtag } from '~/common/api.request';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const analysis = () => {
   const [cashtags, setCashtags] = useState<any[]>([]);
@@ -175,28 +177,28 @@ const analysis = () => {
           <Spin size="large" />
         </Flex>
       )}
-      <Drawer
-        title={`Summary for ${selectedCashtag || ''}`}
-        width={700}
-        onClose={() => setOpen(false)}
-        open={open}
-        styles={{
-          body: {
-            padding: '24px',
-            background: '#f8fafc'
-          }
-        }}
-      >
-        <Flex justify="center" className="p-4" align="center">
-          {loading ? (
-            <Spin size="large" className="mt-64" />
-          ) : (
-            <div className="whitespace-pre-wrap bg-white p-6 rounded-lg shadow">
-              {summaryText}
-            </div>
-          )}
-        </Flex>
-      </Drawer>
+    <Drawer
+  title={`Summary for ${selectedCashtag || ''}`}
+  width={700}
+  onClose={() => setOpen(false)}
+  open={open}
+  styles={{
+    body: {
+      padding: '24px',
+      background: '#f8fafc',
+    },
+  }}
+>
+  <Flex justify="center" className="p-4" align="center">
+    {loading ? (
+      <Spin size="large" className="mt-64" />
+    ) : (
+      <div className=" bg-white p-6 rounded-lg shadow">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{summaryText}</ReactMarkdown>
+      </div>
+    )}
+  </Flex>
+</Drawer>
     </div>
   );
 };
