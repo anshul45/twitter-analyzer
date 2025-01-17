@@ -38,14 +38,6 @@ model User {
   tweets      Tweet[]
 }
 
-model Report {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  cashtag    String   // Cashtag of the report
-  content     Json     @db.Json // Change from String to Json
-  createdAt   DateTime @default(now()) // Timestamp for the report creation
-  tweetDate   TweetDate @relation(fields: [tweetDateId], references: [id])
-  tweetDateId String   // Foreign key referencing TweetDate
-}
 
 model CashtagCount {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -70,7 +62,7 @@ model SummaryObject {
 
 model Summary {
   id                   String           @id @default(auto()) @map("_id") @db.ObjectId
-  date                 String         @unique
+  date                 String           @unique
   homepagesummaries    SummaryObject[]  @relation("HomepageSummaries")
   analysispagesummaries SummaryObject[]  @relation("AnalysisSummaries")
   createdAt            DateTime         @default(now())
