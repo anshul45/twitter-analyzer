@@ -67,21 +67,20 @@ const analysis = () => {
 
 
   const generateTableData = (data: any[], allData: any[]): { tableData: any[]; columns: any[] } => {
-    const uniqueDates = Array.from(new Set(data?.map((item) => item.date)))
+    const uniqueDates = Array.from(new Set(data?.map((item) => item.day)))
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  
 
     // Group data by cashtag and map counts to dates
     const groupedData: Record<string, { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number }> = data.reduce(
       (acc, item) => {
-        const { cashtag, date, count } = item;
+        const { cashtag, day, count } = item;
 
         if (!acc[cashtag]) {
           const stats = calculateStats(allData, cashtag);
           acc[cashtag] = { cashtag, dateCounts: {}, avg: stats.avg, stdDev: stats.stdDev };
         }
 
-        acc[cashtag].dateCounts[date] = (acc[cashtag].dateCounts[date] || 0) + (count || 0);
+        acc[cashtag].dateCounts[day] = (acc[cashtag].dateCounts[day] || 0) + (count || 0);
 
         return acc;
       },

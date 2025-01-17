@@ -8,11 +8,13 @@ import { getRawTweets, getSummary } from '~/common/api.request';
 import { Input, Flex, Select, Space, DatePicker, Button, Modal,Spin, Drawer } from 'antd';
 import CustomTable from '~/components/Table';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 interface Tweet {
   cashtags: string[];
   text: string;
   createdAt: string;
+  day: string;
   username: string;
   tweetId: string;
   qualityScore: number;
@@ -50,39 +52,33 @@ export default function Index() {
     type: 'All',
   });
   
-
-
   const getData = async () => {
-    try{
-      setLoading(true)
+    try {
+      setLoading(true);
+  
       const data = await getRawTweets();
-      setTweets(data.tweets?.flatMap((entry) =>
-        //@ts-ignore
-        entry.tweets.map((tweet:Tweet) => ({
-          cashtags: tweet.cashtags,
-          text: tweet.text,
-          createdAt: tweet.createdAt,
-          username: tweet.username,
-          tweetId: tweet.tweetId,
-          qualityScore: tweet.qualityScore,
-          type: tweet.type,
-          id:tweet.id
-        }))
-      ));
-    }
-      catch (error) {
-        console.error('Error fetching tweets:', error);
-      }
-    
-    finally{
-      setLoading(false)
-    }
-    };
   
-
+      const processedTweets = data?.flatMap((tweet:Tweet) => {
+          return {
+            cashtags: tweet.cashtags,
+            text: tweet.text,
+            createdAt: tweet.createdAt,
+            username: tweet.username,
+            tweetId: tweet.tweetId,
+            qualityScore: tweet.qualityScore,
+            day:tweet.day,
+            type: tweet.type,
+            id: tweet.id,
+          };
+      });
+      setTweets(processedTweets || []);
+    } catch (error) {
+      console.error('Error fetching tweets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
-
-
   useEffect(() => {
     getData();
   }, []);
@@ -91,16 +87,13 @@ export default function Index() {
     return tweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
   }, [tweets]);
 
-   
-
-
 
   useEffect(() => {
     setData(sortedTweets);
     setFilteredData(sortedTweets);
   }, [sortedTweets]);
 
-  
+  dayjs.extend(utc); 
   const isFilterChanged = useMemo(() => {
     return JSON.stringify(filteredData) !== JSON.stringify(data);
   }, [filteredData, data]);
@@ -110,8 +103,11 @@ export default function Index() {
       const updatedFilters = { ...prevFilters, [key]: value };
   
       const filtered = sortedTweets.filter((tweet) => {
+        console.log(updatedFilters.date)
         const matchesDate =
-          !updatedFilters.date || dayjs(tweet.createdAt).isSame(updatedFilters.date, 'day');
+        !updatedFilters.date ||   dayjs(tweet.createdAt).utc().startOf('day').isSame(
+          dayjs(updatedFilters.date).utc().add(1, 'day').startOf('day')
+        );
         const matchesUsername =
           updatedFilters.username === 'All' || tweet.username === updatedFilters.username;
         const matchesCashtag =

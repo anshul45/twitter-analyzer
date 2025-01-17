@@ -12,6 +12,7 @@ model Tweet {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   tweetId     String   @unique
   text        String
+  day         String
   createdAt   String
   username    String
   cashtags    Json   @db.Json
@@ -25,7 +26,8 @@ model Tweet {
 
 model TweetDate {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  date        String   @unique
+  createdAt   String   @unique
+  day         String
   tweets      Tweet[]
   reports     Report[] // Updated to support multiple reports
 }
@@ -49,11 +51,11 @@ model CashtagCount {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   cashtag     String   @unique
   count       Int
-  date        String
-  types        String[]
-  createdAt   DateTime @default(now())
+  day         String
+  createdAt   String
+  types       String[]
   updatedAt   DateTime @updatedAt
-  @@unique([cashtag, date])
+  @@unique([cashtag, createdAt])
 }
 
 model SummaryObject {

@@ -10,9 +10,6 @@ const Navbar = () => {
         <Link to="/" className="cursor-pointer text-white">
           Home
         </Link>
-        {/* <Link to="/report" className="cursor-pointer text-white">
-          Generate Report
-        </Link> */}
         <Link to="/analysis" className="cursor-pointer text-white">
           Get Analysis
         </Link>
