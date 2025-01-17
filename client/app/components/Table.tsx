@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Table, Tag } from 'antd';
+import { Button, Flex, Popover, Table, Tag } from 'antd';
 import type { TableProps } from 'antd';
 
 interface DataType {
@@ -23,16 +23,22 @@ const columns: TableProps<DataType>['columns'] = [
     width: 100,
   },
   {
-    title: 'Tweet',
-    dataIndex: 'text',
-    key: 'text',
-    width: 380,
-  },
-  {
     title: 'Created At',
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 140,
+  },
+  {
+    title: 'Tweet',
+    dataIndex: 'text',
+    key: 'text',
+    render:(tweet) =>
+    <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{tweet}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
+     <div className='cursor-pointer text-blue-500 hover:text-blue-300'>
+    {tweet.slice(0,90)}{tweet.length>100 ? "...":null}
+     </div>
+  </Popover>,
+    width: 380,
   },
   {
     title: 'Cashtags',

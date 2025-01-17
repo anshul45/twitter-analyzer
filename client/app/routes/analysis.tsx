@@ -115,7 +115,8 @@ const analysis = () => {
         title: formatDate(date),
         dataIndex: date,
         key: date,
-        width:100
+        width:100,
+        sorter: (a: any, b: any) => a[date] - b[date],
       })),
       {
         title: 'Avg',
