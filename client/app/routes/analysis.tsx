@@ -46,11 +46,29 @@ const analysis = () => {
 
   const calculateStats = (allData: any[], cashtag: string) => {
     const cashtagData = allData.filter((item) => item.cashtag === cashtag);
-    const counts = cashtagData.map((item) => item.count || 0);
+    
+    // Get all unique dates from the complete dataset
+    const allDates = Array.from(new Set(allData.map(item => item.date)));
+    
+    // Create a map of date to count for this cashtag
+    const dateCountMap = new Map();
+    cashtagData.forEach(item => {
+      dateCountMap.set(item.date, item.count || 0);
+    });
+    
+    // Fill in 0 for missing dates
+    const counts = allDates.map(date => dateCountMap.get(date) || 0);
 
-    const avg = counts.reduce((sum, count) => sum + count, 0) / counts.length;
+    // if (cashtag === '$TSLA') {
+    //   console.log(allDates);
+    //   console.log(counts);
+    // }
+    
+    const sum = counts.reduce((total, count) => total + count, 0);
+    const avg = sum / allDates.length;
+    
     const stdDev = Math.sqrt(
-      counts.reduce((sum, count) => sum + Math.pow(count - avg, 2), 0) / counts.length
+      counts.reduce((sum, count) => sum + Math.pow(count - avg, 2), 0) / allDates.length
     );
 
     return { avg, stdDev };
