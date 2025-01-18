@@ -171,6 +171,7 @@ export class TwitterService {
         return acc;
       }, [] as any[]);
 
+      
       const uniqueDates = [
         ...new Set(combinedTweets.map((tweet) => tweet.createdAt)),
       ];
@@ -196,7 +197,7 @@ export class TwitterService {
 
         if (!tweetDate) {
           tweetDate = await this.prismaService.tweetDate.create({
-            data: { createdAt:date,day:DateUtil.dateOutput(date.toString()) },
+            data: { createdAt:date,date:DateUtil.dateOutput(date.toString()) },
           });
         }
 
@@ -253,7 +254,7 @@ export class TwitterService {
               tweetId: tweet.tweetId,
               text: tweet.text,
               createdAt: tweet.createdAt,
-              day: DateUtil.dateOutput(tweet.createdAt.toString()),
+              date: DateUtil.dateOutput(tweet.createdAt.toString()),
               username: tweet.username,
               user: { connect: { id: user.id } },
               tweetDate: { connect: { id: tweetDate.id } },
@@ -282,22 +283,24 @@ export class TwitterService {
       select: {
         cashtag: true,
         createdAt: true,
-        day:true,
+        date:true,
         types: true,
         count: true,
       },
       where:{
-        day:{
+        date:{
           in:dates
         }
       }
     });
+
+
     
     const allData = await this.prismaService.cashtagCount.findMany({
       select: {
         cashtag: true,
         createdAt: true,
-        day: true,
+        date: true,
         types: true,
         count: true,
       }
@@ -349,7 +352,7 @@ export class TwitterService {
           create: {
             cashtag: cashtag,
             createdAt: date,
-            day: DateUtil.dateOutput(date.toString()),
+            date: DateUtil.dateOutput(date.toString()),
             count: increment,
             types: tweetTypes,
           },
