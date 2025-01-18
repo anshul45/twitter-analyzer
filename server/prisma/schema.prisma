@@ -12,7 +12,9 @@ model Tweet {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   tweetId     String   @unique
   text        String
+  date        String
   createdAt   String
+  updatedAt   DateTime   @default(now())
   username    String
   cashtags    Json   @db.Json
   qualityScore Float?
@@ -25,9 +27,9 @@ model Tweet {
 
 model TweetDate {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  date        String   @unique
+  createdAt   String   @unique
+  date        String
   tweets      Tweet[]
-  reports     Report[] // Updated to support multiple reports
 }
 
 model User {
@@ -36,24 +38,16 @@ model User {
   tweets      Tweet[]
 }
 
-model Report {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  cashtag    String   // Cashtag of the report
-  content     Json     @db.Json // Change from String to Json
-  createdAt   DateTime @default(now()) // Timestamp for the report creation
-  tweetDate   TweetDate @relation(fields: [tweetDateId], references: [id])
-  tweetDateId String   // Foreign key referencing TweetDate
-}
 
 model CashtagCount {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   cashtag     String   @unique
   count       Int
-  date        String
-  types        String[]
-  createdAt   DateTime @default(now())
+  date         String
+  createdAt   String
+  types       String[]
   updatedAt   DateTime @updatedAt
-  @@unique([cashtag, date])
+  @@unique([cashtag, createdAt])
 }
 
 model SummaryObject {
@@ -68,7 +62,7 @@ model SummaryObject {
 
 model Summary {
   id                   String           @id @default(auto()) @map("_id") @db.ObjectId
-  date                 String         @unique
+  date                 String           @unique
   homepagesummaries    SummaryObject[]  @relation("HomepageSummaries")
   analysispagesummaries SummaryObject[]  @relation("AnalysisSummaries")
   createdAt            DateTime         @default(now())

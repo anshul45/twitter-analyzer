@@ -86,59 +86,15 @@ export class TwitterController {
   }
 
   @Get()
-  async processText(
-    @Query('cashtag') cashtag?: string,
-    @Query('date') date?: string,
-    @Query('username') username?: string,
-  ) {
+  async processText() {
     try {
-      const { tweets, report } = await this.twitter.getAnalysis(cashtag, {
-        date,
-        username,
-      });
-      return { tweets, report };
+      const tweets = await this.twitter.getAnalysis();
+      return tweets
     } catch (error) {
       throw new HttpException(
         {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
           error: 'Error processing text',
-          message: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Get('reports')
-  async getReports() {
-    try {
-      const reports = await this.twitter.getReports();
-      return reports;
-    } catch (error) {
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: 'Error fetching reports',
-          message: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('report')
-  async generateReport(
-    @Query('date') date: string,
-    @Query('cashtag') cashtag: string,
-  ) {
-    try {
-      const report = await this.twitter.saveReport(date.trim(), cashtag);
-      return report;
-    } catch (error) {
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: 'Error fetching reports',
           message: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -162,7 +118,6 @@ export class TwitterController {
       );
     }
   }
-
 
   @Get('summary')
   async getSummary() {

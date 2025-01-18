@@ -49,158 +49,12 @@ export class TwitterService {
     this.client = new ApifyClient({ token: apiKey });
     this.input = { username: '', max_posts: 20 };
   }
-  async getReports(): Promise<any> {
+
+
+  async getAnalysis(): Promise<any> {
     try {
-      const tweetDatesWithReports = await this.prismaService.tweetDate.findMany(
-        {
-          include: {
-            reports: true, // Include associated reports
-          },
-        },
-      );
-      // Transform the result into the desired format: date: reports
-      const groupedReports = tweetDatesWithReports.map((tweetDate) => ({
-        date: tweetDate.date,
-        reports: tweetDate.reports,
-      }));
-      return groupedReports;
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-      throw new Error('Failed to fetch reports.');
-    }
-  }
-
-  async getAnalysis(
-    cashtag: string,
-    options = {
-      date: null,
-      username: null,
-    },
-  ): Promise<any> {
-    //{ tweets: string[]; report: string; rawTweets: unknown[] }
-    try {
-      let allUserTweets;
-
-      if (!options.date) {
-        allUserTweets = await this.prismaService.tweetDate.findMany({
-          include: {
-            tweets: {
-              include: {
-                user: true,
-              },
-            },
-          },
-        });
-      } else {
-        allUserTweets = await this.prismaService.tweetDate.findMany({
-          where: {
-            date: {
-              in: options.date?.trim(),
-            },
-          },
-          include: {
-            tweets: {
-              include: {
-                user: true,
-              },
-            },
-          },
-        });
-      }
-
-
-      let filteredTweets;
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      cashtag
-        ? (filteredTweets = allUserTweets
-          .map((user: { tweets: any[] }) => {
-            const matchingTweets = user.tweets.filter((tweet) => {
-              return (
-                Array.isArray(tweet.cashtags) &&
-                tweet.cashtags.includes(cashtag.toUpperCase())
-              );
-            });
-
-            return {
-              ...user,
-              tweets: matchingTweets,
-            };
-          })
-          .filter((user) => user.tweets.length > 0))
-        : (filteredTweets = null);
-
-      // const oneDayTweets = await this.prismaService.tweetDate.findMany({
-      //   where: {
-      //     date: DateUtil.getCurrentDate(),
-      //     cashtags: {
-      //       in: {
-      //         cashtag: cashtag,
-      //       },
-      //     },
-      //   },
-      //   include: {
-      //     tweets: {
-      //       include: {
-      //         user: true,
-      //       },
-      //     },
-      //   },
-      // });
-
-      let tweetsText = null;
-      cashtag && (tweetsText = FormatTweets.groupedTweets(filteredTweets));
-      if (cashtag) {
-        // filter tweets by username
-        if (options.username) {
-          tweetsText = tweetsText.filter(
-            (user) => user.username === options.username,
-          );
-        }
-      }
-
-      // // Filter all tweets at once
-
-      // const filterPrompt = `Here are some tweets:\n\n${this.allTweets.join('\n-----------------')}\n\nPlease return a JSON format containing only the tweets relevant to ${cashtag}. Each tweet should be a string in the list.`;
-
-      // const filteredResponse = await this.openAiService.generateResponse(
-      //   filterPrompt,
-      //   `You are a helpful AI that determines if tweets are relevant to a given cashtag.
-      //   You will receive the list of tweets.
-      //   Go through each tweet and decide if it is relevant to the cashtag and return only the relevant tweets.
-      //    Return JSON of relevant tweets in the following format:
-      //     {
-      //       "tweets": [
-      //         "Tweet 1",
-      //         "Tweet 2",
-      //         "Tweet 3"
-      //       ]
-      //     }
-      //    `,
-      //   {
-      //     outputFormat: 'json',
-      //   },
-      // );
-
-      // const filteredMessages: any = filteredResponse.content
-
-      // save report in db
-      let report = null;
-      if (cashtag) {
-        report = null;
-      }
-      if (options.date) {
-        // if (report) {
-        //   await this.prismaService.tweetDate.update({
-        //     where: { date: options.date },
-        //     data: { report: report },
-        //   });
-        // }
-      }
-
-      return {
-        tweets: cashtag ? tweetsText : allUserTweets,
-        report: report,
-      };
+     const tweets = await this.prismaService.tweet.findMany();
+      return tweets;
     } catch (error) {
       console.error('Error fetching tweets:', error);
       throw new Error('Failed to fetch tweets.');
@@ -292,7 +146,7 @@ export class TwitterService {
           conversationId: string;
         } => ({
           tweetId: tweet.tweet_id,
-          createdAt: DateUtil.dateOutput(tweet.created_at.toString()),
+          createdAt: tweet.created_at,
           text: tweet.retweeted_tweet
             ? tweet.retweeted_tweet?.text + '\n' + tweet.text
             : tweet.text,
@@ -317,6 +171,7 @@ export class TwitterService {
         return acc;
       }, [] as any[]);
 
+      
       const uniqueDates = [
         ...new Set(combinedTweets.map((tweet) => tweet.createdAt)),
       ];
@@ -337,17 +192,24 @@ export class TwitterService {
         );
 
         let tweetDate = await this.prismaService.tweetDate.findUnique({
-          where: { date },
+          where: { createdAt:date },
         });
 
         if (!tweetDate) {
           tweetDate = await this.prismaService.tweetDate.create({
-            data: { date },
+            data: { createdAt:date,date:DateUtil.dateOutput(date.toString()) },
           });
         }
 
-        for (const tweet of tweetsForDate) {
+        await Promise.all(
+          tweetsForDate.map(async (tweet) => {
           // classify tweet cashtag
+          const isTweet = await this.prismaService.tweet.findUnique({
+            where:{
+              tweetId:tweet.tweetId
+            }
+          })
+          if(!isTweet){
           const tweetsCashtags = await this.openAiService.generateResponse(
             `classify ${tweet.text} into cashtag category.`,
             `You are a helpful AI that determines if tweets belongs to any twitter cashtags and assign qualityScore. 
@@ -379,12 +241,12 @@ export class TwitterService {
             },
           );
 
-          const cashtags = tweetsCashtags?.content;
+         const cashtags = tweetsCashtags?.content;
 
           // store cashtag count in the database by date
           //@ts-ignore
           await this.updateCashtagCounts(date, cashtags);
-
+        
           await this.prismaService.tweet.upsert({
             where: { tweetId: tweet.tweetId },
             update: {},
@@ -392,6 +254,7 @@ export class TwitterService {
               tweetId: tweet.tweetId,
               text: tweet.text,
               createdAt: tweet.createdAt,
+              date: DateUtil.dateOutput(tweet.createdAt.toString()),
               username: tweet.username,
               user: { connect: { id: user.id } },
               tweetDate: { connect: { id: tweetDate.id } },
@@ -401,69 +264,11 @@ export class TwitterService {
             },
           });
         }
-      }
+      })
+    )
 
-      console.log(`Tweets successfully saved for username: ${username}`);
-    } catch (error) {
-      console.error('Error saving tweets:', error);
-      throw new Error('Failed to save tweets.');
     }
-  }
-
-
-  async saveReport(date: string, cashtag: string) {
-    try {
-      const allUserTweets = await this.prismaService.tweetDate.findMany({
-        where: {
-          date: date,
-        },
-        include: {
-          tweets: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
-
-      const filteredTweets = allUserTweets
-        .map((user: { tweets: any[] }) => {
-          const matchingTweets = user.tweets.filter((tweet) => {
-            return (
-              Array.isArray(tweet.cashtags) &&
-              tweet.cashtags.includes(cashtag.toUpperCase())
-            );
-          });
-
-          return {
-            ...user,
-            tweets: matchingTweets,
-          };
-        })
-        .filter((user) => user.tweets.length > 0);
-
-      const tweetsText = FormatTweets.groupedTweets(filteredTweets);
-
-      const report = await this.generateReport(tweetsText, cashtag);
-
-      const tweetDate = await this.prismaService.tweetDate.findUnique({
-        where: { date },
-      });
-
-      await this.prismaService.report.create({
-        data: {
-          content: report,
-          cashtag: cashtag,
-          tweetDate: {
-            connect: { id: tweetDate.id }, // Connect to the existing TweetDate
-          },
-        },
-      });
-
-      return {
-        date: date,
-        report: report,
-      };
+      console.log(`Tweets successfully saved for username: ${username}`);
     } catch (error) {
       console.error('Error saving tweets:', error);
       throw new Error('Failed to save tweets.');
@@ -477,7 +282,8 @@ export class TwitterService {
     const sevenDaysdata = await this.prismaService.cashtagCount.findMany({
       select: {
         cashtag: true,
-        date: true,
+        createdAt: true,
+        date:true,
         types: true,
         count: true,
       },
@@ -488,10 +294,12 @@ export class TwitterService {
       }
     });
 
+
     
     const allData = await this.prismaService.cashtagCount.findMany({
       select: {
         cashtag: true,
+        createdAt: true,
         date: true,
         types: true,
         count: true,
@@ -527,10 +335,10 @@ export class TwitterService {
       Object.entries(cashtagCounts).map(async ([cashtag, increment]) => {
         await this.prismaService.cashtagCount.upsert({
           where: {
-            cashtag_date: {
+            cashtag_createdAt: {
               // Using the compound unique constraint
               cashtag: cashtag,
-              date: date,
+              createdAt: date,
             },
           },
           update: {
@@ -543,7 +351,8 @@ export class TwitterService {
           },
           create: {
             cashtag: cashtag,
-            date: date,
+            createdAt: date,
+            date: DateUtil.dateOutput(date.toString()),
             count: increment,
             types: tweetTypes,
           },

@@ -68,7 +68,7 @@ export class CronService {
   constructor(private readonly twitterService: TwitterService) {}
 
   // Cron job to run at Pacific time 5:00 AM every day
-  @Cron('0 5-16/3 * * *', {
+  @Cron('0 4-20/2 * * *', {
     timeZone: 'America/Los_Angeles',
   })
   async handleMorningJob() {

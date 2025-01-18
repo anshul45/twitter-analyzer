@@ -26,7 +26,8 @@ const columns: TableProps<DataType>['columns'] = [
     title: 'Created At',
     dataIndex: 'createdAt',
     key: 'createdAt',
-    width: 140,
+    width: 110,
+    render:(date) => <div>{date.slice(0,11)}</div>
   },
   {
     title: 'Tweet',
@@ -35,10 +36,10 @@ const columns: TableProps<DataType>['columns'] = [
     render:(tweet) =>
     <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{tweet}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
      <div className='cursor-pointer text-blue-500 hover:text-blue-300'>
-    {tweet.slice(0,90)}{tweet.length>100 ? "...":null}
+    {tweet.slice(0,160)}{tweet.length>160 ? "...":null}
      </div>
   </Popover>,
-    width: 380,
+    width: 439,
   },
   {
     title: 'Cashtags',
@@ -53,14 +54,14 @@ const columns: TableProps<DataType>['columns'] = [
         ))}
       </>
     ),
-    width: 150,
+    width: 160,
   },
   {
     title: 'Tweet Url',
     key: 'tweetUrl',
     dataIndex: 'tweetUrl',
     render: (url) => <a href={url} target="_blank" rel="noopener noreferrer">View Tweet</a>,
-    width: 110,
+    width: 104,
   },
   {
     title: 'Quality Score',
@@ -76,14 +77,14 @@ const columns: TableProps<DataType>['columns'] = [
       </span>
         </Flex>
     ),
-    width: 130,
+    width: 122,
   },
   {
     title: 'Tweet Type',
     dataIndex: 'type',
     key: 'type',
     render: (type) => <Tag color={type === 'retweet' ? 'green' : 'blue'}>{type}</Tag>,
-    width: 130,
+    width: 120,
   },
 ];
 

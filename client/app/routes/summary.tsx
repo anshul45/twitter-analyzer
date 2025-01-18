@@ -25,22 +25,29 @@ const SummaryTable = () => {
     setLoading(true);
     try {
       const response = await getAllSummary();
-      const flattenedData = response.flatMap(item => [
+  
+      // Sort the response by createdAt in descending order
+      const sortedResponse = response.sort(
+        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+  
+      const flattenedData = sortedResponse.flatMap(item => [
         ...item.homepagesummaries.map((summary: any) => ({
           date: item.date,
           title: summary.title,
           description: summary.description,
           source: item.source,
-          type: 'homepage'
+          type: 'homepage',
         })),
         ...item.analysispagesummaries.map((summary: any) => ({
           date: item.date,
           title: summary.title,
           description: summary.description,
           source: item.source,
-          type: 'analysis'
-        }))
+          type: 'analysis',
+        })),
       ]);
+  
       setData(flattenedData);
     } catch (error) {
       console.error('Failed to fetch summaries:', error);
@@ -48,6 +55,8 @@ const SummaryTable = () => {
       setLoading(false);
     }
   };
+  
+
 
   useEffect(() => {
     getSummaries();
