@@ -1,10 +1,20 @@
 export class DateUtil {
-  static dateOutput = (dateStr: string): string => {
-    const date = new Date(dateStr); 
-    // const localizedDate = new Date(date.toLocaleString('en-US'));
+  static dateOutput = (dateStr:string):string => {
+    const date = new Date(dateStr);
 
-    return date.toDateString(); 
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'UTC',      
+      weekday: 'short',     
+      year: 'numeric',      
+      month: 'short',       
+      day: 'numeric',       
   };
+
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const formattedDate = formatter.format(date);
+
+    return formattedDate.replace(/,/g, '');
+};
 
   static getCurrentDate = (): string => {
     const date = new Date();
