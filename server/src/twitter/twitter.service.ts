@@ -514,6 +514,20 @@ await this.prismaService.summary.create({
     }
   }
   
+
+  async getTweetsForCashtag(): Promise<any[]> {
+    try {
+      const tweets = await this.prismaService.tweet.findMany({
+        where:{
+          date: DateUtil.getCurrentDate()
+        }
+      });  
+      return tweets;
+    } catch (error) {
+      console.error('Error getting analysis pages summaries:', error);
+      throw new Error('Failed to get analysis pages summaries');
+    }
+  }
   
 
 

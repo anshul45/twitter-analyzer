@@ -159,4 +159,10 @@ export class TwitterController {
     );
     return { summary };
   }
+
+  @Get('cashtag/tweets')
+  async getCashtagTweets(){
+    const tweets = await this.twitter.getTweetsForCashtag()
+    return tweets;
+  }
 }
