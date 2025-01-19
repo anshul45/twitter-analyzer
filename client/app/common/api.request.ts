@@ -100,3 +100,22 @@ export const getAllSummary = async (): Promise<any[]> => {
     throw error;
   }
 };
+
+export const getCashtagTweets = async (): Promise<any[]> => {
+  try {
+    const response = await axios.get(
+      `${url}/twitter/cashtag/tweets`
+    );
+
+
+    return response.data;
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching tweets:', error.response?.data || error.message);
+    } else {
+      console.error('Unexpected error fetching tweets:', error);
+    }
+    throw error;
+  }
+};
