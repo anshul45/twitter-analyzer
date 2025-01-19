@@ -3,7 +3,7 @@ export class DateUtil {
     const date = new Date(dateStr);
 
     const options: Intl.DateTimeFormatOptions = {
-      timeZone: 'UTC',      
+      timeZone: 'America/Los_Angeles',      
       weekday: 'short',     
       year: 'numeric',      
       month: 'short',       
