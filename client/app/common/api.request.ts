@@ -7,8 +7,8 @@ export interface DailyReport {
   report: string;
 }
 
-const url = "https://twitter-analyzer.onrender.com"
-// const url = "http://localhost:8000"
+// const url = "https://twitter-analyzer.onrender.com"
+const url = "http://localhost:8000"
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
