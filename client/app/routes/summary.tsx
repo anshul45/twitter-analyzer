@@ -32,14 +32,14 @@ const SummaryTable = () => {
       );
   
       const flattenedData = sortedResponse.flatMap(item => [
-        ...item.homepagesummaries.map((summary: any) => ({
+        ...item.homepage.map((summary: any) => ({
           date: item.date,
           title: summary.title,
           description: summary.description,
           source: item.source,
           type: 'homepage',
         })),
-        ...item.analysispagesummaries.map((summary: any) => ({
+        ...item.analysis.map((summary: any) => ({
           date: item.date,
           title: summary.title,
           description: summary.description,

@@ -61,62 +61,23 @@ export class TwitterService {
     }
   }
 
-  async generateReport(tweetsText: any, cashtag: string): Promise<string> {
-    const response = await this.openAiService.generateResponse(
-      await this.formatUserTweetsToMarkdown(tweetsText),
-      `Please analyze these cashtag-related (${cashtag}) tweets by given username and provide a detailed report covering below topics.
-      Please stick to the tweets only and username provided to you. Don't use any other external information. 
-      Just analyse these tweets and provide a report. It is very important to stick to the tweets only and cite the tweets using tweet urls.
 
-    1. Market Sentiment & Trading Activity
-    - Overall market sentiment (bullish/bearish signals)
-    - Trading patterns and strategies mentioned
-    - Common price targets or predictions
-    - Risk assessments and warnings
 
-    2. Symbol Analysis
-    - Most frequently discussed cashtags
-    - Correlations between different symbols
-    - How sentiment varies across different assets
-    - Emerging or trending symbols
+  // async formatUserTweetsToMarkdown(tweets: any[]): Promise<string> {
+  //   // tweets = [{username: 'pakpakchicken', tweets: ['tweet1', 'tweet2']}, {username: 'fundstrat', tweets: ['tweet1', 'tweet2']}]
+  //   const formattedTweets = tweets.map((user) => {
+  //     const userTweets = user.tweets
+  //       .map(
+  //         (tweet) =>
+  //           `- ${tweet.text} \n - tweet url: https://x.com/${user.username}/status/${tweet.tweetId}`,
+  //       )
+  //       .join('\n');
+  //     return `### ${user.username}\n -${userTweets}`;
+  //   });
 
-    3. Information Sources & Credibility
-    - Types of analysis being shared (technical, fundamental, news-based)
-    - Quality of supporting evidence provided
-    - Common information sources cited
-    - Presence of potential misinformation or pump-and-dump patterns
-
-    4. Community Dynamics
-    - Key influencers and their impact
-    - Common discussion patterns
-    - How news events affect conversation
-    - Popular trading theories or strategies
-
-    Technical Context
-    - Trading indicators frequently referenced
-    - Chart patterns being discussed
-    - Time frames most commonly analyzed
-    - Risk management approaches mentioned`,
-    );
-
-    return response.content as string;
-  }
-
-  async formatUserTweetsToMarkdown(tweets: any[]): Promise<string> {
-    // tweets = [{username: 'pakpakchicken', tweets: ['tweet1', 'tweet2']}, {username: 'fundstrat', tweets: ['tweet1', 'tweet2']}]
-    const formattedTweets = tweets.map((user) => {
-      const userTweets = user.tweets
-        .map(
-          (tweet) =>
-            `- ${tweet.text} \n - tweet url: https://x.com/${user.username}/status/${tweet.tweetId}`,
-        )
-        .join('\n');
-      return `### ${user.username}\n -${userTweets}`;
-    });
-
-    const markdown = formattedTweets.join('\n\n');
-    return markdown;
-  }
+  //   const markdown = formattedTweets.join('\n\n');
+  //   return markdown;
+  // }
 
   async savetoDB(username: string): Promise<void> {
     try {
@@ -140,19 +101,24 @@ export class TwitterService {
         ): {
           tweetId: string;
           createdAt: string;
+          date: string;
           text: string;
           username: string;
-          retweetedTweet: any;
           conversationId: string;
+          retweet: boolean;
+          quote: boolean;
         } => ({
           tweetId: tweet.tweet_id,
           createdAt: tweet.created_at,
+          date: DateUtil.dateOutput(tweet.created_at),
           text: tweet.retweeted_tweet
-            ? tweet.retweeted_tweet?.text + '\n' + tweet.text
+            ? `${tweet.text.split(":")[0]}  /n  ${tweet.retweeted_tweet.text}`
+            : tweet.quoted ? tweet.text + tweet.quoted?.text 
             : tweet.text,
           username: username,
-          retweetedTweet: tweet.retweeted_tweet?.text,
           conversationId: tweet.conversation_id,
+          retweet:!!tweet.retweeted_tweet?.text,
+          quote:!!tweet.quoted?.text,
         }),
       );
 
@@ -173,7 +139,7 @@ export class TwitterService {
 
       
       const uniqueDates = [
-        ...new Set(combinedTweets.map((tweet) => tweet.createdAt)),
+        ...new Set(combinedTweets.map((tweet) => tweet.date)),
       ];
 
       let user = await this.prismaService.user.findUnique({
@@ -188,28 +154,26 @@ export class TwitterService {
 
       for (const date of uniqueDates) {
         const tweetsForDate = extractedTweets.filter(
-          (tweet) => tweet.createdAt === date,
+          (tweet) => tweet.date === date,
         );
 
         let tweetDate = await this.prismaService.tweetDate.findUnique({
-          where: { createdAt:date },
+          where: { date:date },
         });
 
         if (!tweetDate) {
           tweetDate = await this.prismaService.tweetDate.create({
-            data: { createdAt:date,date:DateUtil.dateOutput(date.toString()) },
+            data: {date:date},
           });
         }
 
-        await Promise.all(
-          tweetsForDate.map(async (tweet) => {
-          // classify tweet cashtag
-          const isTweet = await this.prismaService.tweet.findUnique({
-            where:{
-              tweetId:tweet.tweetId
-            }
-          })
-          if(!isTweet){
+       
+        for (const tweet of tweetsForDate) {
+          const existingTweet = await this.prismaService.tweet.findUnique({
+            where: { tweetId: tweet.tweetId },
+          });
+
+          if(!existingTweet){
           const tweetsCashtags = await this.openAiService.generateResponse(
             `classify ${tweet.text} into cashtag category.`,
             `You are a helpful AI that determines if tweets belongs to any twitter cashtags and assign qualityScore. 
@@ -245,7 +209,7 @@ export class TwitterService {
 
           // store cashtag count in the database by date
           //@ts-ignore
-          await this.updateCashtagCounts(date, cashtags);
+          await this.updateCashtagCounts(tweet.date,tweet.createdAt, cashtags);
         
           await this.prismaService.tweet.upsert({
             where: { tweetId: tweet.tweetId },
@@ -254,7 +218,9 @@ export class TwitterService {
               tweetId: tweet.tweetId,
               text: tweet.text,
               createdAt: tweet.createdAt,
-              date: DateUtil.dateOutput(tweet.createdAt.toString()),
+              date: tweet.date,
+              retweet: tweet.retweet,
+              quote:tweet.quote,
               username: tweet.username,
               user: { connect: { id: user.id } },
               tweetDate: { connect: { id: tweetDate.id } },
@@ -264,8 +230,7 @@ export class TwitterService {
             },
           });
         }
-      })
-    )
+        }
 
     }
       console.log(`Tweets successfully saved for username: ${username}`);
@@ -275,27 +240,26 @@ export class TwitterService {
     }
   }
 
-    async getCashtagCountsByDate(): Promise<void> {  
+  async getCashtagCountsByDate(): Promise<void> {
+    const dates = DateUtil.getDatesForLastSevenDays();
+    const daysCount = DateUtil.getDaysCount();
 
-    const dates = DateUtil.getDatesForLastSevenDays()
-
-    const sevenDaysdata = await this.prismaService.cashtagCount.findMany({
-      select: {
-        cashtag: true,
-        createdAt: true,
-        date:true,
-        types: true,
-        count: true,
-      },
-      where:{
-        date:{
-          in:dates
-        }
-      }
-    });
-
-
-    
+  
+    // const sevenDaysdata = await this.prismaService.cashtagCount.findMany({
+    //   select: {
+    //     cashtag: true,
+    //     createdAt: true,
+    //     date: true,
+    //     types: true,
+    //     count: true,
+    //   },
+    //   where: {
+    //     date: {
+    //       in: dates,
+    //     },
+    //   },
+    // });
+  
     const allData = await this.prismaService.cashtagCount.findMany({
       select: {
         cashtag: true,
@@ -303,19 +267,50 @@ export class TwitterService {
         date: true,
         types: true,
         count: true,
-      }
+      },
     });
-    
-    return ({
+
+    const sevenDaysdata = allData.filter((item) => dates.includes(item.date));
+  
+  
+    // Calculate the average and standard deviation for each cashtag
+    const cashtagStats: Record<string, { total: number; values: number[] }> = {};
+  
+    allData.forEach((item) => {
+      if (!cashtagStats[item.cashtag]) {
+        cashtagStats[item.cashtag] = { total: 0, values: [] };
+      }
+      cashtagStats[item.cashtag].total += item.count;
+      cashtagStats[item.cashtag].values.push(item.count);
+    });
+  
+    const avgCashtagData = Object.entries(cashtagStats).map(([cashtag, data]) => {
+      const avg = data.total / daysCount;
+      const variance =
+        data.values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / daysCount;
+      const stdDev = Math.sqrt(variance);
+  
+      return {
+        cashtag,
+        avg,
+        stdDev,
+      };
+    });
+  
+    return {
       sevenDaysdata,
-      allData
-    }) as any;
+      avgCashtagData,
+    } as any;
   }
+  
+  
 
   async updateCashtagCounts(
     date: string,
+    createdAt:string,
     cashtags: { cashtags: string[]; tweetType: string },
   ): Promise<void> {
+
     // Count occurrences of each cashtag
     const cashtagCounts = cashtags.cashtags.reduce(
       (acc, cashtag) => {
@@ -335,10 +330,10 @@ export class TwitterService {
       Object.entries(cashtagCounts).map(async ([cashtag, increment]) => {
         await this.prismaService.cashtagCount.upsert({
           where: {
-            cashtag_createdAt: {
+            cashtag_date: {
               // Using the compound unique constraint
               cashtag: cashtag,
-              createdAt: date,
+              date: date.trim(),
             },
           },
           update: {
@@ -351,8 +346,8 @@ export class TwitterService {
           },
           create: {
             cashtag: cashtag,
-            createdAt: date,
-            date: DateUtil.dateOutput(date.toString()),
+            createdAt: createdAt,
+            date: date.trim(),
             count: increment,
             types: tweetTypes,
           },
@@ -397,7 +392,7 @@ export class TwitterService {
             date: DateUtil.getCurrentDate(),  
             createdAt: new Date(),
             updatedAt: new Date(),
-            homepagesummaries: {
+            homepage: {
               connectOrCreate: {
                 where: { title: title },  
                 create: { 
@@ -454,7 +449,7 @@ await this.prismaService.summary.create({
     date: DateUtil.getCurrentDate(),  
     createdAt: new Date(),
     updatedAt: new Date(),
-    analysispagesummaries: {
+    analysis: {
       connectOrCreate: {
         where: { title: cashtag },  
         create: { 
@@ -503,8 +498,8 @@ await this.prismaService.summary.create({
     try {
       const summaryWithAnalysis = await this.prismaService.summary.findMany({
         include: {
-          analysispagesummaries: true,  
-          homepagesummaries:true
+          analysis: true,  
+          homepage:true
         },
       });  
       return summaryWithAnalysis;
