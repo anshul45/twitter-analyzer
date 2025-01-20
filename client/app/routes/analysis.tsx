@@ -18,7 +18,7 @@ const analysis = () => {
   const [summaryText, setSummaryText] = useState<string>('');
   const [cashtagTweets, setCashtagTweets] = useState<any[]>();
   const [showTweets,setShowTweets] = useState<boolean>(false);
-  const [tweetText,setTweetText]=useState<string>("")
+  const [selectedTweets, setSelectedTweets] = useState<any[]>([]);
 
   const getData = async () => {
     try {
@@ -81,16 +81,21 @@ const analysis = () => {
   };
 
   const generateTableData = (data: any[], allData: any[]): { tableData: any[]; columns: any[] } => {
-    const uniqueDates = Array.from(new Set(data?.map((item) => item.date)))
+    const uniqueDates = Array.from(new Set(data ? data.map((item) => item.date) : []))
       .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
     // Map cashtags to their tweets
-    const cashtagTweetMap: Record<string, string> = (cashtagTweets || []).reduce(
+    const cashtagTweetMap: Record<string, any[]> = (cashtagTweets || []).reduce(
       (acc, tweet) => {
         (tweet.cashtags || []).forEach((cashtag: string) => {
-          acc[cashtag] = acc[cashtag]
-            ? `${acc[cashtag]} https://x.com/${tweet.username}/status/${tweet.tweetId}`
-            :`https://x.com/${tweet.username}/status/${tweet.tweetId}`;
+          if (!acc[cashtag]) {
+            acc[cashtag] = [];
+          }
+          acc[cashtag].push({
+            text: tweet.text,
+            username: tweet.username,
+            tweetId: tweet.tweetId
+          });
         });
         return acc;
       },
@@ -100,7 +105,7 @@ const analysis = () => {
     // Group data by cashtag and map counts to dates
     const groupedData: Record<
       string,
-      { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number; tweets: string }
+      { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number; tweets: any[] }
     > = data.reduce((acc, item) => {
       const { cashtag, date, count } = item;
 
@@ -111,7 +116,7 @@ const analysis = () => {
           dateCounts: {},
           avg: stats.avg,
           stdDev: stats.stdDev,
-          tweets: cashtagTweetMap[cashtag] || 'No tweets',
+          tweets: cashtagTweetMap[cashtag] || [],
         };
       }
 
@@ -121,7 +126,7 @@ const analysis = () => {
     }, {});
 
     // Prepare table data
-    const tableData = Object.values(groupedData)?.map((entry) => {
+    const tableData = Object.values(groupedData || {}).map((entry) => {
       const { cashtag, dateCounts, avg, stdDev, tweets } = entry;
 
       return {
@@ -144,7 +149,7 @@ const analysis = () => {
         fixed: 'left',
         width: 100,
       },
-      ...uniqueDates?.map((date) => ({
+      ...(uniqueDates || []).map((date) => ({
         title: formatDate(date),
         dataIndex: date,
         key: date,
@@ -167,9 +172,11 @@ const analysis = () => {
         title: 'Tweets',
         dataIndex: 'tweets',
         key: 'tweets',
-        render: (tweets:any) => (
-          <Button disabled={tweets === "No tweets"} type="link" onClick={() => handleShowTweets(tweets)}>{tweets == "No tweets" ? "No tweets":"Show Tweets"}</Button>
-      )
+        render: (tweets:any[]) => (
+          <Button disabled={tweets.length === 0} type="link" onClick={() => handleShowTweets(tweets)}>
+            {tweets.length === 0 ? "No tweets" : "Show Tweets"}
+          </Button>
+        )
       },
       {
         title: 'Summary',
@@ -185,8 +192,6 @@ const analysis = () => {
 
     return { tableData, columns };
   };
-
-  console.log(tweetText)
 
   useEffect(() => {
     getData();
@@ -205,10 +210,41 @@ const analysis = () => {
     }
   }, [cashtags, cashtagTweets]);
 
-  const handleShowTweets = (tweets:any) =>{
-    setShowTweets(true)
-    setTweetText(tweets)
+  const handleShowTweets = (tweets:any[]) =>{
+    setShowTweets(true);
+    setSelectedTweets(tweets);
   }
+
+  const tweetColumns = [
+    {
+      title: 'Tweet Content',
+      dataIndex: 'text',
+      key: 'text',
+      width: '70%',
+      render: (text: string, record: any) => (
+        <div>
+          <div className="font-semibold mb-1">@{record.username}</div>
+          <div className="whitespace-pre-wrap">{text}</div>
+        </div>
+      )
+    },
+    {
+      title: 'Link',
+      dataIndex: 'tweetId',
+      key: 'link',
+      width: '30%',
+      render: (_: string, record: any) => (
+        <a
+          href={`https://x.com/${record.username}/status/${record.tweetId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:underline"
+        >
+          View on Twitter
+        </a>
+      )
+    }
+  ];
 
   return (
     <div className="w-full px-5 pt-2">
@@ -246,35 +282,31 @@ const analysis = () => {
           {loading ? (
             <Spin size="large" className="mt-64" />
           ) : (
-            <div className=" bg-white p-6 rounded-lg shadow">
+            <div className="bg-white p-6 rounded-lg shadow">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{summaryText}</ReactMarkdown>
             </div>
           )}
         </Flex>
       </Drawer>
       <Drawer
-        title={`Tweets links`}
-        width={500}
+        title="Tweets"
+        width={800}
         onClose={() => setShowTweets(false)}
         open={showTweets}
         styles={{
           body: {
-            padding: '10px',
+            padding: '16px',
             background: '#f8fafc',
           },
         }}
       >
-            <div className=" bg-white h-full p-4 rounded-lg shadow">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-    a: ({ href, children }) => (
-      <p style={{ marginBottom: '7px', height:"100%" }}>
-        <a href={href} target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      </p>
-    ),
-  }}>{tweetText}</ReactMarkdown>
-            </div>
+        <Table
+          dataSource={selectedTweets.map((tweet, index) => ({ ...tweet, key: index }))}
+          columns={tweetColumns}
+          pagination={false}
+          bordered
+          className="shadow-lg"
+        />
       </Drawer>
     </div>
   );
