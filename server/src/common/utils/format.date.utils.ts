@@ -41,4 +41,24 @@ export class DateUtil {
 
     return lastSevenDays; 
   };
+
+  static getDaysCount = (): number => {
+    const startDate = "2025-01-01";
+    const timeZone = "America/Los_Angeles";
+  
+    const start = new Date(new Date(startDate).toLocaleString("en-US", { timeZone }));
+  
+    const now = new Date();
+    const end = new Date(now.toLocaleString("en-US", { timeZone }));
+  
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error("Invalid date format. Please provide valid dates.");
+    }
+  
+    const diffTime = end.getTime() - start.getTime();
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+    return days;
+  };
+  
 }

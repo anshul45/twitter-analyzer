@@ -1,16 +1,18 @@
 import React from 'react';
-import { Button, Flex, Popover, Table, Tag } from 'antd';
+import {Flex, Popover, Table, Tag } from 'antd';
 import type { TableProps } from 'antd';
 
 interface DataType {
   key: string;
   username: string;
   text: string;
-  createdAt: string;
+  date: string;
   cashtags: string[];
   tweetUrl: string;
   type: string;
   qualityScore?: number;
+  retweet: boolean;
+  quote: boolean;
 }
 
 const columns: TableProps<DataType>['columns'] = [
@@ -24,22 +26,22 @@ const columns: TableProps<DataType>['columns'] = [
   },
   {
     title: 'Created At',
-    dataIndex: 'createdAt',
+    dataIndex: 'date',
     key: 'createdAt',
     width: 110,
-    render:(date) => <div>{date.slice(0,11)}</div>
+    render:(date) => <div>{date.slice(0,10)}</div>
   },
   {
     title: 'Tweet',
     dataIndex: 'text',
     key: 'text',
-    render:(tweet) =>
-    <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{tweet}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
-     <div className='cursor-pointer text-blue-500 hover:text-blue-300'>
-    {tweet.slice(0,160)}{tweet.length>160 ? "...":null}
+    render:(tweet,record) =>
+    <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{record?.text}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
+     <div className={`cursor-pointer ${record.retweet ? 'text-blue-500 hover:text-blue-300': record.quote ? 'text-green-500 hover:text-blue-300' :'text-gray-500 hover:text-gray-300'}`}>
+    {record?.text?.slice(0,160)}{record?.text?.length>160 ? "...":null}
      </div>
   </Popover>,
-    width: 439,
+    width: 430,
   },
   {
     title: 'Cashtags',
@@ -92,12 +94,14 @@ interface AppProps {
   tweets: {
     username: string;
     text: string;
-    createdAt: string;
+    date: string;
     cashtags: string[];
     tweetId: string;
     type: string;
     qualityScore?: number;
     id:string
+    retweet: boolean,
+    quote: boolean
   }[];
 }
 
@@ -107,12 +111,16 @@ const App: React.FC<AppProps> = ({ tweets }) => {
     key: tweet.id,
     username: tweet.username,
     text: tweet.text,
-    createdAt: tweet.createdAt,
+    date: tweet.date,
     cashtags: tweet.cashtags,
     tweetUrl: `https://x.com/${tweet.username}/status/${tweet.tweetId}`,
     type: tweet.type,
     qualityScore: tweet.qualityScore,
+    quote:tweet.quote,
+    retweet:tweet.retweet
   }));
+
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width:'100%', height: '100%', overflow: 'hidden' }}>

@@ -16,12 +16,14 @@ interface Tweet {
   cashtags: string[];
   text: string;
   createdAt: string;
-  day: string;
+  date: string;
   username: string;
   tweetId: string;
   qualityScore: number;
   type: string;
   id: string;
+  retweet: boolean,
+  quote: boolean
 }
 
 interface Filters {
@@ -64,11 +66,13 @@ export default function Index() {
         return {
           cashtags: tweet.cashtags,
           text: tweet.text,
+          date:tweet.date,
           createdAt: tweet.createdAt,
           username: tweet.username,
           tweetId: tweet.tweetId,
           qualityScore: tweet.qualityScore,
-          day: tweet.day,
+          quote:tweet.quote,
+          retweet:tweet.retweet,
           type: tweet.type,
           id: tweet.id,
         };
@@ -105,10 +109,9 @@ export default function Index() {
       const updatedFilters = { ...prevFilters, [key]: value };
 
       const filtered = sortedTweets.filter((tweet) => {
-        console.log(updatedFilters.date)
         const matchesDate =
-          !updatedFilters.date || dayjs(tweet.createdAt).utc().startOf('day').isSame(
-            dayjs(updatedFilters.date).utc().add(1, 'day').startOf('day')
+          !updatedFilters.date || dayjs(tweet.date).utc().startOf('day').isSame(
+            dayjs(updatedFilters.date).utc().startOf('day')
           );
         const matchesUsername =
           updatedFilters.username === 'All' || tweet.username === updatedFilters.username;
@@ -180,6 +183,7 @@ export default function Index() {
   const uniqueTypes = useMemo(() => {
     return [...new Set(sortedTweets.map((tweet) => tweet.type))];
   }, [sortedTweets]);
+
 
   return (
     <>
