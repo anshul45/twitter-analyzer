@@ -50,16 +50,28 @@ const analysis = () => {
   };
 
   const calculateStats = (allData: any[], cashtag: string) => {
-    const cashtagData = allData.filter((item) => item.cashtag === cashtag);
-    const counts = cashtagData.map((item) => item.count || 0);
-
+    const groupedData = allData.reduce((acc, item) => {
+      if (item.cashtag === cashtag) {
+        const key = `${item.cashtag}-${item.date}`;
+        if (!acc[key]) {
+          acc[key] = { ...item, count: item.count || 0 };
+        } else {
+          acc[key].count += item.count || 0;
+        }
+      }
+      return acc;
+    }, {});
+  
+    const counts = Object.values(groupedData).map((item: any) => item.count);
+  
     const avg = counts.reduce((sum, count) => sum + count, 0) / counts.length;
     const stdDev = Math.sqrt(
       counts.reduce((sum, count) => sum + Math.pow(count - avg, 2), 0) / counts.length
     );
-
+  
     return { avg, stdDev };
   };
+  
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
