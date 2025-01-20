@@ -18,7 +18,7 @@ const analysis = () => {
   const [summaryText, setSummaryText] = useState<string>('');
   const [cashtagTweets, setCashtagTweets] = useState<any[]>();
   const [showTweets,setShowTweets] = useState<boolean>(false);
-  const [tweetText,setTweetText]=useState<string>("")
+  const [tweetText,setTweetText] = useState<Array<{content: string, url: string}>>([]);
 
   const getData = async () => {
     try {
@@ -49,7 +49,6 @@ const analysis = () => {
     }
   };
  
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const day = date.getDate();
@@ -66,17 +65,21 @@ const analysis = () => {
       return acc;
     }, {} as Record<string, { avg: number; stdDev: number }>);
   
-    const uniqueDates = Array.from(new Set(data?.map((item) => item.date))).sort(
+    const uniqueDates = Array.from(new Set((data || []).map((item) => item.date))).sort(
       (a, b) => new Date(b).getTime() - new Date(a).getTime()
     );
   
     // Map cashtags to their tweets
-    const cashtagTweetMap: Record<string, string> = (cashtagTweets || []).reduce(
+    const cashtagTweetMap: Record<string, Array<{content: string, url: string}>> = (cashtagTweets || []).reduce(
       (acc, tweet) => {
         (tweet.cashtags || []).forEach((cashtag: string) => {
-          acc[cashtag] = acc[cashtag]
-            ? `${acc[cashtag]} https://x.com/${tweet.username}/status/${tweet.tweetId}`
-            : `https://x.com/${tweet.username}/status/${tweet.tweetId}`;
+          if (!acc[cashtag]) {
+            acc[cashtag] = [];
+          }
+          acc[cashtag].push({
+            content: `@${tweet.username}\n\n${tweet.text || 'No content available'}`,
+            url: `https://x.com/${tweet.username}/status/${tweet.tweetId}`
+          });
         });
         return acc;
       },
@@ -86,7 +89,7 @@ const analysis = () => {
     // Group data by cashtag and map counts to dates
     const groupedData: Record<
       string,
-      { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number; tweets: string }
+      { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number; tweets: Array<{content: string, url: string}> }
     > = data.reduce((acc, item) => {
       const { cashtag, date, count } = item;
   
@@ -97,7 +100,7 @@ const analysis = () => {
           dateCounts: {},
           avg: stats.avg,
           stdDev: stats.stdDev,
-          tweets: cashtagTweetMap[cashtag] || 'No tweets',
+          tweets: cashtagTweetMap[cashtag] || [],
         };
       }
   
@@ -107,7 +110,7 @@ const analysis = () => {
     }, {});
   
     // Prepare table data
-    const tableData = Object.values(groupedData)?.map((entry) => {
+    const tableData = Object.values(groupedData || {}).map((entry) => {
       const { cashtag, dateCounts, avg, stdDev, tweets } = entry;
   
       return {
@@ -130,7 +133,7 @@ const analysis = () => {
         fixed: 'left',
         width: 110,
       },
-      ...uniqueDates?.map((date) => ({
+      ...(uniqueDates || []).map((date) => ({
         title: formatDate(date),
         dataIndex: date,
         key: date,
@@ -153,13 +156,13 @@ const analysis = () => {
         title: 'Tweets',
         dataIndex: 'tweets',
         key: 'tweets',
-        render: (tweets: any) => (
+        render: (tweets: Array<{content: string, url: string}>) => (
           <Button
-            disabled={tweets === 'No tweets'}
+            disabled={tweets.length === 0}
             type="link"
             onClick={() => handleShowTweets(tweets)}
           >
-            {tweets === 'No tweets' ? 'No tweets' : 'Show Tweets'}
+            {tweets.length === 0 ? 'No tweets' : 'Show Tweets'}
           </Button>
         ),
       },
@@ -195,11 +198,10 @@ const analysis = () => {
     }
   }, [cashtags, cashtagTweets]);
 
-
-  const handleShowTweets = (tweets:any) =>{
-    setShowTweets(true)
-    setTweetText(tweets)
-  }
+  const handleShowTweets = (tweets: Array<{content: string, url: string}>) => {
+    setShowTweets(true);
+    setTweetText(tweets);
+  };
 
   return (
     <div className="w-full px-5 pt-2">
@@ -207,7 +209,7 @@ const analysis = () => {
         <>
           {tableData && (
             <Table
-              dataSource={tableData.tableData?.map((item, index) => ({ key: index, ...item }))}
+              dataSource={(tableData.tableData || []).map((item, index) => ({ key: index, ...item }))}
               columns={tableData.columns}
               pagination={false}
               scroll={{ x: 1000 }}
@@ -244,28 +246,49 @@ const analysis = () => {
         </Flex>
       </Drawer>
       <Drawer
-        title={`Tweets links`}
-        width={500}
+        title="Tweets"
+        width={800}
         onClose={() => setShowTweets(false)}
         open={showTweets}
         styles={{
           body: {
-            padding: '10px',
+            padding: '24px',
             background: '#f8fafc',
           },
         }}
       >
-            <div className=" bg-white h-full p-4 rounded-lg shadow">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-    a: ({ href, children }) => (
-      <p style={{ marginBottom: '7px', height:"100%" }}>
-        <a href={href} target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      </p>
-    ),
-  }}>{tweetText}</ReactMarkdown>
-            </div>
+        <Table 
+          dataSource={tweetText.map((tweet, index) => ({
+            key: index,
+            ...tweet
+          }))}
+          columns={[
+            {
+              title: 'Tweet Content',
+              dataIndex: 'content',
+              key: 'content',
+              width: '70%',
+              render: (content: string) => (
+                <div style={{ whiteSpace: 'pre-wrap' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{content?.split('\n\n')[0]}</div>
+                  {content?.split('\n\n')?.slice(1)?.join('\n\n')}
+                </div>
+              )
+            },
+            {
+              title: 'Link',
+              dataIndex: 'url',
+              key: 'url',
+              render: (url: string) => (
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  View Tweet
+                </a>
+              )
+            }
+          ]}
+          pagination={false}
+          className="shadow-lg"
+        />
       </Drawer>
     </div>
   );
