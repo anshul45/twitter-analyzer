@@ -113,7 +113,7 @@ export class TwitterService {
           date: DateUtil.dateOutput(tweet.created_at),
           text: tweet.retweeted_tweet
             ? `${tweet.text.split(":")[0]}  /n  ${tweet.retweeted_tweet.text}`
-            : tweet.quoted ? tweet.text + tweet.quoted?.text 
+            : tweet.quoted ? tweet.text +"  " + tweet.quoted?.text 
             : tweet.text,
           username: username,
           conversationId: tweet.conversation_id,
