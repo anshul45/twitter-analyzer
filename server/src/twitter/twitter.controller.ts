@@ -53,7 +53,6 @@ export class TwitterController {
       'Kross_Roads',
       'svarncapital',
       'RihardJarc',
-      'LogicalThesis',
       'dixit1978',
       'derekquick1',
       'Soumyazen',

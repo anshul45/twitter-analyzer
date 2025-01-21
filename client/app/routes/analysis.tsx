@@ -48,6 +48,7 @@ const analysis = () => {
       setLoading(false);
     }
   };
+
  
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -68,23 +69,28 @@ const analysis = () => {
     const uniqueDates = Array.from(new Set((data || []).map((item) => item.date))).sort(
       (a, b) => new Date(b).getTime() - new Date(a).getTime()
     );
+
   
     // Map cashtags to their tweets
-    const cashtagTweetMap: Record<string, Array<{content: string, url: string}>> = (cashtagTweets || []).reduce(
-      (acc, tweet) => {
-        (tweet.cashtags || []).forEach((cashtag: string) => {
-          if (!acc[cashtag]) {
-            acc[cashtag] = [];
-          }
-          acc[cashtag].push({
-            content: `@${tweet.username}\n\n${tweet.text || 'No content available'}`,
-            url: `https://x.com/${tweet.username}/status/${tweet.tweetId}`
-          });
+    const cashtagTweetMap: Record<string, Array<{ content: string; url: string; createdAt: string }>> = (cashtagTweets || [])
+    .reduce((acc, tweet) => {
+      (tweet.cashtags || []).forEach((cashtag: string) => {
+        if (!acc[cashtag]) {
+          acc[cashtag] = [];
+        }
+        acc[cashtag].push({
+          content: `@${tweet.username}\n\n${tweet.text || 'No content available'}`,
+          url: `https://x.com/${tweet.username}/status/${tweet.tweetId}`,
+          createdAt: tweet.createdAt, // Add `createdAt` for sorting later
         });
-        return acc;
-      },
-      {}
-    );
+      });
+      return acc;
+    }, {} as Record<string, Array<{ content: string; url: string; createdAt: string }>>);
+  
+  // Sorting latest tweet first
+  Object.keys(cashtagTweetMap).forEach((cashtag) => {
+    cashtagTweetMap[cashtag].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  });
   
     // Group data by cashtag and map counts to dates
     const groupedData: Record<
@@ -133,30 +139,48 @@ const analysis = () => {
         fixed: 'left',
         width: 110,
       },
-      ...(uniqueDates || []).map((date) => ({
+      ...(uniqueDates || []).map((date,index) => ({
         title: formatDate(date),
         dataIndex: date,
         key: date,
         width: 100,
         sorter: (a: any, b: any) => a[date] - b[date],
+        ...(index === 0
+          ? {
+              defaultSortOrder: 'descend',
+              onCell: (record: any) => {
+                const value = record[date];
+                const avg = parseFloat(record.avg);
+                const stdDev = parseFloat(record.stdDev);
+                const threshold = avg + stdDev;
+                return {
+                  style: {
+                    backgroundColor: value > threshold ? '#ffccc7' : 'white',
+                  },
+                };
+              },
+            }
+          : {}),
       })),
       {
         title: 'Avg',
         dataIndex: 'avg',
         key: 'avg',
         width: 100,
+        sorter: (a: any, b: any) => parseFloat(a.avg) - parseFloat(b.avg),
       },
       {
         title: 'Std Dev',
         dataIndex: 'stdDev',
         key: 'stdDev',
-        width: 100,
+        width: 105,
+        sorter: (a: any, b: any) => parseFloat(a.stdDev) - parseFloat(b.stdDev),
       },
       {
         title: 'Tweets',
         dataIndex: 'tweets',
         key: 'tweets',
-        render: (tweets: Array<{content: string, url: string}>) => (
+        render: (tweets: Array<{ content: string; url: string }>) => (
           <Button
             disabled={tweets.length === 0}
             type="link"
@@ -177,10 +201,11 @@ const analysis = () => {
         ),
       },
     ];
-  
-    return { tableData, columns };
-  };
-  
+    
+    return { tableData, columns }; 
+  }
+
+
   useEffect(() => {
     getData();
   }, []);

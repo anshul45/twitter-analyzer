@@ -5,7 +5,6 @@ import { ActorRun, ApifyClient } from 'apify-client';
 import { OpenAIWrapper } from 'src/modules/openai/openai.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DateUtil } from 'src/common/utils/format.date.utils';
-import { FormatTweets } from 'src/common/utils/format.tweets.utils';
 dotenv.config();
 
 interface InputData {
@@ -113,7 +112,7 @@ export class TwitterService {
           date: DateUtil.dateOutput(tweet.created_at),
           text: tweet.retweeted_tweet
             ? `${tweet.text.split(":")[0]}  /n  ${tweet.retweeted_tweet.text}`
-            : tweet.quoted ? tweet.text +"  " + tweet.quoted?.text 
+            : tweet.quoted ? tweet.text + "  " + tweet.quoted?.text 
             : tweet.text,
           username: username,
           conversationId: tweet.conversation_id,
@@ -174,7 +173,9 @@ export class TwitterService {
           });
 
           if(!existingTweet){
-          const tweetsCashtags = await this.openAiService.generateResponse(
+            let tweetsCashtags: any = {};
+            try {
+              tweetsCashtags  = await this.openAiService.generateResponse(
             `classify ${tweet.text} into cashtag category.`,
             `You are a helpful AI that determines if tweets belongs to any twitter cashtags and assign qualityScore. 
               Cashtags on Twitter are a way to refer to specific stocks, cryptocurrencies, or other financial instruments using a dollar sign ($) followed by a ticker symbol (e.g., $AAPL for Apple, $BTC for Bitcoin). 
@@ -204,10 +205,18 @@ export class TwitterService {
               outputFormat: 'json',
             },
           );
-
-         const cashtags = tweetsCashtags?.content;
-
-          // store cashtag count in the database by date
+        } catch (error) {
+            // Set default values for content
+            tweetsCashtags = {
+              content:  {
+                "cashtags": [
+                ],
+                "qualityScore": 0,
+                "tweetType": 'unknown'
+              }
+            };
+        }
+         const cashtags = tweetsCashtags?.content || {};
           //@ts-ignore
           await this.updateCashtagCounts(tweet.date,tweet.createdAt, cashtags);
         
@@ -228,10 +237,9 @@ export class TwitterService {
               qualityScore: cashtags['qualityScore'] || 0,
               type: cashtags['tweetType'] || '',
             },
-          });
+          }); 
         }
         }
-
     }
       console.log(`Tweets successfully saved for username: ${username}`);
     } catch (error) {
@@ -310,6 +318,10 @@ export class TwitterService {
     createdAt:string,
     cashtags: { cashtags: string[]; tweetType: string },
   ): Promise<void> {
+
+    if(!cashtags || !cashtags?.cashtags?.length){
+      return;
+    }
 
     // Count occurrences of each cashtag
     const cashtagCounts = cashtags.cashtags.reduce(
