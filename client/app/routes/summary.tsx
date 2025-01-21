@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/no-unresolved */
-import { Table, Drawer, Button, Spin } from 'antd';
+import { Table, Drawer, Button, Spin, Flex } from 'antd';
 import { useEffect, useState } from 'react';
 import { getAllSummary } from '~/common/api.request';
 import { ColumnType } from 'antd/es/table';
@@ -103,7 +103,9 @@ const SummaryTable = () => {
   return (
     <div className="w-full px-5 pt-2">
       {loading ? (
-        <Spin size="large" />
+        <Flex justify='center' align='center' className='h-[calc(100vh-65px)]'>
+          <Spin size="large" />
+        </Flex>
       ) : (
         <Table dataSource={data} columns={columns} pagination={false} />
       )}
