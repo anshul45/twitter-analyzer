@@ -35,10 +35,10 @@ const columns: TableProps<DataType>['columns'] = [
     title: 'Tweet',
     dataIndex: 'text',
     key: 'text',
-    render:(tweet,record) =>
-    <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{record?.text}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
-     <div className={`cursor-pointer ${record.retweet ? 'text-blue-500 hover:text-blue-300': record.quote ? 'text-green-500 hover:text-blue-300' :'text-gray-500 hover:text-gray-300'}`}>
-    {record?.text?.slice(0,160)}{record?.text?.length>160 ? "...":null}
+    render:(tweet) =>
+    <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{tweet}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
+     <div className={"cursor-pointer"}>
+    {tweet.slice(0,250)}{tweet.length>250 ? " ...":null}
      </div>
   </Popover>,
     width: 430,
@@ -62,7 +62,7 @@ const columns: TableProps<DataType>['columns'] = [
     title: 'Tweet Url',
     key: 'tweetUrl',
     dataIndex: 'tweetUrl',
-    render: (url) => <a href={url} target="_blank" rel="noopener noreferrer">View Tweet</a>,
+    render: (url) => <a href={url} className='text-blue-500' target="_blank" rel="noopener noreferrer">View Tweet</a>,
     width: 104,
   },
   {
