@@ -78,9 +78,18 @@ export class TwitterService {
   //   return markdown;
   // }
 
-  async savetoDB(username: string): Promise<void> {
+  async savetoDB(): Promise<string> {
     try {
-      this.input.username = username;
+      const users = await this.prismaService.user.findMany()
+
+      if (!users || users.length === 0) {
+        console.log('No users found in the database.');
+        return;
+      }
+
+      for (const user of users) {
+        console.log(`Processing user: ${user.username}`);
+        this.input.username = user.username;
       const run: ActorRun = await this.client
         .actor('SfyC2ifoAKkAUvjTt')
         .call(this.input);
@@ -90,8 +99,8 @@ export class TwitterService {
         .listItems();
 
       if (!items.length) {
-        console.log(`No tweets found for username: ${username}`);
-        return;
+        console.log(`No tweets found for username: ${user.username}`);
+        continue;
       }
 
       const extractedTweets = items.map(
@@ -114,7 +123,7 @@ export class TwitterService {
             ? `${tweet.text.split(":")[0]}  /n  ${tweet.retweeted_tweet.text}`
             : tweet.quoted ? tweet.text + "  " + tweet.quoted?.text 
             : tweet.text,
-          username: username,
+          username: user.username,
           conversationId: tweet.conversation_id,
           retweet:!!tweet.retweeted_tweet?.text,
           quote:!!tweet.quoted?.text,
@@ -141,15 +150,6 @@ export class TwitterService {
         ...new Set(combinedTweets.map((tweet) => tweet.date)),
       ];
 
-      let user = await this.prismaService.user.findUnique({
-        where: { username: username },
-      });
-
-      if (!user) {
-        user = await this.prismaService.user.create({
-          data: { username: username },
-        });
-      }
 
       for (const date of uniqueDates) {
         const tweetsForDate = extractedTweets.filter(
@@ -241,7 +241,8 @@ export class TwitterService {
         }
         }
     }
-      console.log(`Tweets successfully saved for username: ${username}`);
+      console.log(`Tweets successfully saved for username: ${user.username}`);
+  }
     } catch (error) {
       console.error('Error saving tweets:', error);
       throw new Error('Failed to save tweets.');
@@ -249,11 +250,12 @@ export class TwitterService {
   }
 
   async getCashtagCountsByDate(): Promise<void> {
-    const dates = DateUtil.getDatesForLastSevenDays();
+    const last7DaysDates = DateUtil.getDatesForLastNDays(7);
+    const last30DaysDates = DateUtil.getDatesForLastNDays(30);
     const daysCount = DateUtil.getDaysCount();
 
   
-    // const sevenDaysdata = await this.prismaService.cashtagCount.findMany({
+    // const sevenDaysdata1 = await this.prismaService.cashtagCount.findMany({
     //   select: {
     //     cashtag: true,
     //     createdAt: true,
@@ -263,7 +265,7 @@ export class TwitterService {
     //   },
     //   where: {
     //     date: {
-    //       in: dates,
+    //       in: last30DaysDates,
     //     },
     //   },
     // });
@@ -278,36 +280,44 @@ export class TwitterService {
       },
     });
 
-    const sevenDaysdata = allData.filter((item) => dates.includes(item.date));
+    const sevenDaysdata = allData.filter((item) => last7DaysDates.includes(item.date));
+    const last30DaysData = allData.filter((item) => last30DaysDates.includes(item.date));
+
   
   
     // Calculate the average and standard deviation for each cashtag
-    const cashtagStats: Record<string, { total: number; values: number[] }> = {};
+    const calculateStats = (data: typeof allData, daysCount: number) => {
+      const stats: Record<string, { total: number; values: number[] }> = {};
   
-    allData.forEach((item) => {
-      if (!cashtagStats[item.cashtag]) {
-        cashtagStats[item.cashtag] = { total: 0, values: [] };
-      }
-      cashtagStats[item.cashtag].total += item.count;
-      cashtagStats[item.cashtag].values.push(item.count);
-    });
+      data.forEach((item) => {
+        if (!stats[item.cashtag]) {
+          stats[item.cashtag] = { total: 0, values: [] };
+        }
+        stats[item.cashtag].total += item.count;
+        stats[item.cashtag].values.push(item.count);
+      });
   
-    const avgCashtagData = Object.entries(cashtagStats).map(([cashtag, data]) => {
-      const avg = data.total / daysCount;
-      const variance =
-        data.values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / daysCount;
-      const stdDev = Math.sqrt(variance);
+      return Object.entries(stats).map(([cashtag, stat]) => {
+        const avg = stat.total / daysCount;
+        const variance =
+          stat.values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / daysCount;
+        const stdDev = Math.sqrt(variance);
   
-      return {
-        cashtag,
-        avg,
-        stdDev,
-      };
-    });
+        return {
+          cashtag,
+          avg,
+          stdDev,
+        };
+      });
+    };
+
+    const avgCashtagDataDays = calculateStats(allData, daysCount);
+    const avg30DaysCashtagData = calculateStats(last30DaysData,daysCount < 30 ? daysCount : 30);
   
     return {
       sevenDaysdata,
-      avgCashtagData,
+      avgCashtagDataDays,
+      avg30DaysCashtagData
     } as any;
   }
   
@@ -533,6 +543,52 @@ await this.prismaService.summary.create({
     } catch (error) {
       console.error('Error getting analysis pages summaries:', error);
       throw new Error('Failed to get analysis pages summaries');
+    }
+  }
+
+  async getUsers(): Promise<any[]>  {
+    try {
+      const users = await this.prismaService.user.findMany({
+      });  
+      return users;
+    } catch (error) {
+      console.error('Error getting users:', error);
+      throw new Error('Failed to get users');
+    }
+  }
+
+  async addUser(username:string): Promise<void>  {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where:{username}
+      })
+      
+      if(!user) {
+        await this.prismaService.user.create({
+          data:{username}
+        })
+      }
+      } catch (error) {
+      console.error('Error adding user:', error);
+      throw new Error('Failed to add user');
+    }
+  }
+  
+  async removeUser(id:string): Promise<void>  {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where:{id}
+      })
+      if(user){
+        await this.prismaService.user.delete({
+          where:{
+            id
+          }
+        }); 
+      }
+    } catch (error) {
+      console.error('Error removing user:', error);
+      throw new Error('Failed to remove user');
     }
   }
   

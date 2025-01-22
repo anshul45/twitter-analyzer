@@ -6,6 +6,7 @@ import {
   Post,
   Query,
   Body,
+  Delete,
 } from '@nestjs/common';
 import { TwitterService } from './twitter.service';
 
@@ -15,74 +16,13 @@ export class TwitterController {
 
   @Post()
   async addText() {
-    const usernames = [
-      'pakpakchicken',
-      'fundstrat',
-      'BourbonCap',
-      'ripster47',
-      'Micro2Macr0',
-      'LogicalThesis',
-      'RichardMoglen',
-      'Couch_Investor',
-      'StockMarketNerd',
-      'MCins_',
-      'unusual_whales',
-      'EventuallyWLTHY',
-      'ftr_investors',
-      'DataDInvesting',
-      'simpleinvest01',
-      'EarningsHubHQ',
-      'amitisinvesting',
-      'seekvalue1990',
-      'techfund1',
-      'alc2022',
-      'fs_insight',
-      'stocktalkweekly',
-      'mvcinvesting',
-      'Speculator_io',
-      'preetkailon',
-      'StockMKTNewz',
-      'EconomyApp',
-      'borrowed_ideas',
-      'joecarlsonshow',
-      'StockSavvyShay',
-      'SixSigmaCapital',
-      'saxena_puru',
-      'FromValue',
-      'TechFundies',
-      'Kross_Roads',
-      'svarncapital',
-      'RihardJarc',
-      'dixit1978',
-      'derekquick1',
-      'Soumyazen',
-      'KrisPatel99',
-      'Kawcak20',
-      'rhemrajani9',
-      'ecommerceshares',
-      'WallStJesus',
-      'TicTocTick',
-      'Brian_Stoffel_',
-      'MarkNewtonCMT',
-      'gurgavin',
-      'BrianFeroldi',
-      'dhaval_kotecha',
-      'fundamentell',
-      'BigBullCap',
-      'JonahLupton',
-      'mukund',
-    ];
-
-    // Sequential execution
-    for (const user of usernames) {
       try {
-        await this.twitter.savetoDB(user);
-        console.log(`Successfully added user: ${user}`);
+       await this.twitter.savetoDB();
       } catch (error) {
-        console.error(`Error adding user ${user}:`, error.message);
+        console.error(`Error adding user:`, error.message);
       }
     }
-  }
+  
 
   @Get()
   async processText() {
@@ -163,5 +103,26 @@ export class TwitterController {
   async getCashtagTweets(){
     const tweets = await this.twitter.getTweetsForCashtag()
     return tweets;
+  }
+
+  @Get('users')
+  async getUsers(){
+    const users = await this.twitter.getUsers()
+    return users;
+  }
+
+  @Post('user')
+  async addUser(@Body() body: { username: string;}){
+    const {username} = body;
+    const users = await this.twitter.addUser(username)
+    return users;
+  }
+
+
+  @Delete('user')
+  async removeUser(@Body() body: { id: string;}){
+    const {id} = body;
+    const users = await this.twitter.removeUser(id)
+    return users;
   }
 }

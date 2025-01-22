@@ -25,10 +25,10 @@ export class DateUtil {
     return localizedDate.toDateString(); 
   };
 
-  static getDatesForLastSevenDays = (): string[] => {
+  static getDatesForLastNDays = (days: number): string[] => {
     const today = new Date();
 
-    const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+    const lastNDays = Array.from({ length: days }, (_, index) => {
       const date = new Date(today);
       date.setDate(today.getDate() - index); 
 
@@ -39,7 +39,7 @@ export class DateUtil {
       return localizedDate.toDateString(); 
     });
 
-    return lastSevenDays; 
+    return lastNDays; 
   };
 
   static getDaysCount = (): number => {

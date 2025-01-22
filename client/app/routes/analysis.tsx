@@ -59,12 +59,19 @@ const analysis = () => {
 
   const generateTableData = (
     data: any[],
-    avgCashtagData: { cashtag: string; avg: number; stdDev: number }[]
+    avgCashtagData: { cashtag: string; avg: number; stdDev: number }[],
+    avg30DaysCashtagData: { cashtag: string; avg: number; stdDev: number }[]
   ): { tableData: any[]; columns: any[] } => {
+
     const avgCashtagMap = avgCashtagData.reduce((acc, item) => {
       acc[item.cashtag] = { avg: item.avg, stdDev: item.stdDev };
       return acc;
     }, {} as Record<string, { avg: number; stdDev: number }>);
+
+    const avg30DaysCashtagMap = avg30DaysCashtagData.reduce((acc, item) => {
+      acc[item.cashtag] = { avg30: item.avg, stdDev30: item.stdDev };
+      return acc;
+    }, {} as Record<string, { avg30: number; stdDev30: number }>);
   
     const uniqueDates = Array.from(new Set((data || []).map((item) => item.date))).sort(
       (a, b) => new Date(b).getTime() - new Date(a).getTime()
@@ -95,17 +102,20 @@ const analysis = () => {
     // Group data by cashtag and map counts to dates
     const groupedData: Record<
       string,
-      { cashtag: string; dateCounts: Record<string, number>; avg: number; stdDev: number; tweets: Array<{content: string, url: string}> }
+      { cashtag: string; dateCounts: Record<string, number>; avg: number; avg30: number; stdDev: number; stdDev30: number; tweets: Array<{content: string, url: string}> }
     > = data.reduce((acc, item) => {
       const { cashtag, date, count } = item;
   
       if (!acc[cashtag]) {
         const stats = avgCashtagMap[cashtag] || { avg: 0, stdDev: 0 };
+        const stats30 = avg30DaysCashtagMap[cashtag] || { avg30: 0, stdDev30: 0 };
         acc[cashtag] = {
           cashtag,
           dateCounts: {},
           avg: stats.avg,
           stdDev: stats.stdDev,
+          avg30: stats30.avg30,
+          stdDev30: stats30.stdDev30,
           tweets: cashtagTweetMap[cashtag] || [],
         };
       }
@@ -117,12 +127,14 @@ const analysis = () => {
   
     // Prepare table data
     const tableData = Object.values(groupedData || {}).map((entry) => {
-      const { cashtag, dateCounts, avg, stdDev, tweets } = entry;
+      const { cashtag, dateCounts, avg, stdDev, tweets,avg30,stdDev30 } = entry;
   
       return {
         cashtag,
         avg: avg.toFixed(2),
         stdDev: stdDev.toFixed(2),
+        avg30: avg30.toFixed(2),
+        stdDev30: stdDev30.toFixed(2),
         tweets,
         ...uniqueDates.reduce((acc, date) => {
           acc[date] = dateCounts[date] || 0;
@@ -130,6 +142,7 @@ const analysis = () => {
         }, {}),
       };
     });
+
   
     const columns = [
       {
@@ -137,13 +150,13 @@ const analysis = () => {
         dataIndex: 'cashtag',
         key: 'cashtag',
         fixed: 'left',
-        width: 110,
+        width: 95,
       },
       ...(uniqueDates || []).map((date,index) => ({
         title: formatDate(date),
         dataIndex: date,
         key: date,
-        width: 100,
+        width: 93,
         sorter: (a: any, b: any) => a[date] - b[date],
         ...(index === 0
           ? {
@@ -166,28 +179,41 @@ const analysis = () => {
         title: 'Avg',
         dataIndex: 'avg',
         key: 'avg',
-        width: 100,
+        width: 70,
         sorter: (a: any, b: any) => parseFloat(a.avg) - parseFloat(b.avg),
       },
       {
         title: 'Std Dev',
         dataIndex: 'stdDev',
         key: 'stdDev',
-        width: 105,
+        width: 102,
         sorter: (a: any, b: any) => parseFloat(a.stdDev) - parseFloat(b.stdDev),
+      },
+      {
+        title: 'Avg30',
+        dataIndex: 'avg30',
+        key: 'avg30',
+        width: 80,
+        sorter: (a: any, b: any) => parseFloat(a.avg30) - parseFloat(b.avg30),
+      },
+      {
+        title: 'Std Dev30',
+        dataIndex: 'stdDev30',
+        key: 'stdDev30',
+        width: 117,
+        sorter: (a: any, b: any) => parseFloat(a.stdDev30) - parseFloat(b.stdDev30),
       },
       {
         title: 'Tweets',
         dataIndex: 'tweets',
         key: 'tweets',
         render: (tweets: Array<{ content: string; url: string }>) => (
-          <Button
-            disabled={tweets.length === 0}
-            type="link"
-            onClick={() => handleShowTweets(tweets)}
+          <div
+          className={`text-center ${tweets.length > 0 ? 'text-blue-500 cursor-pointer hover:text-blue-300':''}`}
+            onClick={() => {tweets.length > 0 ? handleShowTweets(tweets) : null}}
           >
-            {tweets.length === 0 ? 'No tweets' : 'Show Tweets'}
-          </Button>
+            {tweets.length === 0 ? 'No tweets' : 'Show'}
+          </div>
         ),
       },
       {
@@ -195,9 +221,9 @@ const analysis = () => {
         dataIndex: 'summary',
         key: 'summary',
         render: (_: any, record: any) => (
-          <Button onClick={() => handleClick(record.cashtag)} type="link">
-            Get Summary
-          </Button>
+          <div className='text-blue-500 cursor-pointer hover:text-blue-300 text-center' onClick={() => handleClick(record.cashtag)}>
+            Get
+          </div>
         ),
       },
     ];
@@ -212,7 +238,7 @@ const analysis = () => {
 
   useEffect(() => {
     if (cashtags.length > 0) {
-      const generatedTableData = generateTableData(cashtags[0].sevenDaysdata, cashtags[0].avgCashtagData);
+      const generatedTableData = generateTableData(cashtags[0].sevenDaysdata, cashtags[0].avgCashtagDataDays, cashtags[0].avg30DaysCashtagData);
 
       setTableData({
         ...generatedTableData,
@@ -229,7 +255,7 @@ const analysis = () => {
   };
 
   return (
-    <div className="w-full px-5 pt-2">
+    <div className="w-full px-2 pt-2" style={{scrollbarWidth:"thin"}}>
       {!isLoadingcashtag ? (
         <>
           {tableData && (
