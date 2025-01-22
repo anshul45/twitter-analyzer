@@ -119,3 +119,51 @@ export const getCashtagTweets = async (): Promise<any[]> => {
     throw error;
   }
 };
+    
+    export const getUsers = async (): Promise<any[]> => {
+    try {
+      const response = await axios.get(
+        `${url}/twitter/users`
+      );
+  
+  
+      return response.data;
+  
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error fetching Users:', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error fetching Users:', error);
+      }
+      throw error;
+    }
+  }
+
+  export const addUser = async (username:string): Promise<void> => {
+    try {
+      const response = await axios.post(
+        `${url}/twitter/user`,{username:username}
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error fetching Users:', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error fetching Users:', error);
+      }
+      throw error;
+    }
+  }
+  export const removeUser = async (id: string): Promise<void> => {
+    try {
+      await axios.delete(`${url}/twitter/user`, {
+        data: { id },
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error deleting user:', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error deleting user:', error);
+      }
+      throw error;
+    }
+  };

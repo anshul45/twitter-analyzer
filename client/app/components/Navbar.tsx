@@ -16,6 +16,9 @@ const Navbar = () => {
         <Link to="/summary" className="cursor-pointer text-white">
           Summary
         </Link>
+        <Link to="/users" className="cursor-pointer text-white">
+          Users
+        </Link>
       </Flex>
       <div></div>
     </Flex>
