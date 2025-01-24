@@ -7,7 +7,7 @@ export interface DailyReport {
   report: string;
 }
 
-const url = "http://ec2-13-60-202-54.eu-north-1.compute.amazonaws.com:8000"
+const url = "https://ec2-13-60-202-54.eu-north-1.compute.amazonaws.com"
 // const url = "http://localhost:8000"
 
 
