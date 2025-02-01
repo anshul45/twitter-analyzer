@@ -78,7 +78,7 @@ export class TwitterService {
   //   return markdown;
   // }
 
-  async savetoDB(): Promise<string> {
+  async savetoDB(): Promise<void> {
     try {
       const users = await this.prismaService.user.findMany()
 
@@ -86,6 +86,7 @@ export class TwitterService {
         console.log('No users found in the database.');
         return;
       }
+
 
       for (const user of users) {
         console.log(`Processing user: ${user.username}`);
@@ -166,8 +167,11 @@ export class TwitterService {
           });
         }
 
-       
-        for (const tweet of tweetsForDate) {
+       try{
+         for (const tweet of tweetsForDate) {
+           if(!tweet.tweetId){
+             continue;
+          }
           const existingTweet = await this.prismaService.tweet.findUnique({
             where: { tweetId: tweet.tweetId },
           });
@@ -239,6 +243,11 @@ export class TwitterService {
             },
           }); 
         }
+        }
+      }
+        catch (error) {
+          console.error('Error saving tweets:', error);
+          throw new Error('Failed to save tweets.');
         }
     }
       console.log(`Tweets successfully saved for username: ${user.username}`);
