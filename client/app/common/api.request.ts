@@ -7,7 +7,7 @@ export interface DailyReport {
   report: string;
 }
 
-const url = "https://twitter-analyzer.onrender.com"
+const url = "https://ec2-54-174-172-135.compute-1.amazonaws.com"
 // const url = "http://localhost:8000"
 
 
