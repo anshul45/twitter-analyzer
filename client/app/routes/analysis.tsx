@@ -179,7 +179,7 @@ const analysis = () => {
         title: 'Avg',
         dataIndex: 'avg',
         key: 'avg',
-        width: 70,
+        width: 84,
         sorter: (a: any, b: any) => parseFloat(a.avg) - parseFloat(b.avg),
       },
       {
@@ -193,7 +193,7 @@ const analysis = () => {
         title: 'Avg30',
         dataIndex: 'avg30',
         key: 'avg30',
-        width: 80,
+        width: 87,
         sorter: (a: any, b: any) => parseFloat(a.avg30) - parseFloat(b.avg30),
       },
       {
@@ -215,6 +215,7 @@ const analysis = () => {
             {tweets.length === 0 ? 'No tweets' : 'Show'}
           </div>
         ),
+        width:95
       },
       {
         title: 'Summary',
@@ -225,6 +226,7 @@ const analysis = () => {
             Get
           </div>
         ),
+        width:97
       },
     ];
     
