@@ -260,13 +260,9 @@ const analysis = () => {
     setTweetText(tweets);
   };
 
-  console.log(tableData)
-
   return (
     <div className="w-full px-2 pt-2" style={{scrollbarWidth:"thin"}}>
       {(!isLoadingCashtags && tableData) ? (
-        <>
-          {tableData && (
             <Table
               dataSource={(tableData.tableData || []).map((item, index) => ({ key: index, ...item }))}
               columns={tableData.columns}
@@ -275,8 +271,6 @@ const analysis = () => {
               bordered
               className="shadow-lg"
             />
-          )}
-        </>
       ) : (
         <Flex justify="center" align="center" className="h-96">
           <Spin size="large" />
