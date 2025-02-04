@@ -7,32 +7,39 @@ import { useEffect, useState } from 'react';
 import { getCashtags, getSummaryForCashtag,getCashtagTweets } from '~/common/api.request';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useQuery } from '@tanstack/react-query';
 
 const analysis = () => {
-  const [cashtags, setCashtags] = useState<any[]>([]);
+  // const [cashtags, setCashtags] = useState<any[]>([]);
   const [tableData, setTableData] = useState<{ tableData: any[]; columns: any[] } | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const [selectedCashtag, setSelectedCashtag] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [isLoadingcashtag, setIsLoadingcashtag] = useState<boolean>(false);
   const [summaryText, setSummaryText] = useState<string>('');
-  const [cashtagTweets, setCashtagTweets] = useState<any[]>();
+  // const [cashtagTweets, setCashtagTweets] = useState<any[]>();
   const [showTweets,setShowTweets] = useState<boolean>(false);
   const [tweetText,setTweetText] = useState<Array<{content: string, url: string}>>([]);
 
-  const getData = async () => {
-    try {
-      setIsLoadingcashtag(true);
+ 
+  const { data: cashtags , isLoading: isLoadingCashtags, error: errorCashtags } = useQuery({
+    queryKey: ['cashtags'],
+    queryFn: async () => {
       const data = await getCashtags();
-      const tweets = await getCashtagTweets();
-      setCashtagTweets(tweets);
-      setCashtags([data]);
-    } catch (error) {
-      console.error('Error fetching cashtags:', error);
-    } finally {
-      setIsLoadingcashtag(false);
-    }
-  };
+      return data;
+    },
+    staleTime: 20 * 60 * 1000 //expiry
+  });
+
+  
+  const { data: cashtagTweets = [], isLoading: isLoadingTweets, error: errorTweets } = useQuery({
+    queryKey: ['tweets'],
+    queryFn: async () => {
+      const data = await getCashtagTweets();
+      return data;
+    },
+    staleTime: 20 * 60 * 1000 //expiry
+  });
 
   const handleClick = async (cashtag: string) => {
     setSelectedCashtag(cashtag);
@@ -234,13 +241,10 @@ const analysis = () => {
   }
 
 
-  useEffect(() => {
-    getData();
-  }, []);
 
   useEffect(() => {
-    if (cashtags.length > 0) {
-      const generatedTableData = generateTableData(cashtags[0].sevenDaysdata, cashtags[0].avgCashtagDataDays, cashtags[0].avg30DaysCashtagData);
+    if (cashtags) {
+      const generatedTableData = generateTableData(cashtags?.sevenDaysdata, cashtags?.avgCashtagDataDays, cashtags?.avg30DaysCashtagData);
 
       setTableData({
         ...generatedTableData,
@@ -258,9 +262,7 @@ const analysis = () => {
 
   return (
     <div className="w-full px-2 pt-2" style={{scrollbarWidth:"thin"}}>
-      {!isLoadingcashtag ? (
-        <>
-          {tableData && (
+      {(!isLoadingCashtags && tableData) ? (
             <Table
               dataSource={(tableData.tableData || []).map((item, index) => ({ key: index, ...item }))}
               columns={tableData.columns}
@@ -269,8 +271,6 @@ const analysis = () => {
               bordered
               className="shadow-lg"
             />
-          )}
-        </>
       ) : (
         <Flex justify="center" align="center" className="h-96">
           <Spin size="large" />

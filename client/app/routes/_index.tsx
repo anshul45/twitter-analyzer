@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useQuery } from '@tanstack/react-query';
 
 interface Tweet {
   cashtags: string[];
@@ -46,8 +47,6 @@ export default function Index() {
   const [openSummaryModal, setOpenSummaryModal] = useState<boolean>(false)
   const [summaryText, setSummaryText] = useState<string>("")
   const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [tweets, setTweets] = useState<Tweet[]>([])
   const [title, setTitle] = useState<string>("")
   const [filters, setFilters] = useState({
     date: null,
@@ -56,38 +55,23 @@ export default function Index() {
     type: 'All',
   });
 
-  const getData = async () => {
-    try {
-      setLoading(true);
-
-      const data = await getRawTweets();
-
-      const processedTweets = data?.flatMap((tweet: Tweet) => {
-        return {
-          cashtags: tweet.cashtags,
-          text: tweet.text,
-          date:tweet.date,
+    
+    const { data: tweets = [], isLoading: isLoadingTweets, error } = useQuery<
+    Tweet[],
+    Error 
+  >({
+      queryKey: ['tweets'],
+      queryFn: async () => {
+        const data = await getRawTweets();
+        return data?.map((tweet: Tweet) => ({
+          ...tweet,
           createdAt: tweet.createdAt,
-          username: tweet.username,
-          tweetId: tweet.tweetId,
-          qualityScore: tweet.qualityScore,
-          quote:tweet.quote,
-          retweet:tweet.retweet,
-          type: tweet.type,
-          id: tweet.id,
-        };
-      });
-      setTweets(processedTweets || []);
-    } catch (error) {
-      console.error('Error fetching tweets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        })) || [];
+      },
+      staleTime: 20 * 60 * 1000 //expiry
+});
 
-  useEffect(() => {
-    getData();
-  }, []);
+
 
   const sortedTweets = useMemo(() => {
     return tweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
@@ -242,12 +226,13 @@ export default function Index() {
           </div>
         </Flex>
         <div className="mt-2">
-          {loading ? (
+          {isLoadingTweets || !tweets.length ? (
             <Flex justify="center" align="center" className="h-96">
               <Spin size="large" />
             </Flex>
           ) : (
-            <CustomTable tweets={filteredData} />
+            filteredData.length ?
+            <CustomTable tweets={filteredData} /> : null
           )}
         </div>
       </div>

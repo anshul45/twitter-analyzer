@@ -9,6 +9,9 @@ import type { LinksFunction } from "@remix-run/node";
 
 import "./tailwind.css";
 import Navbar from "./components/Navbar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -42,8 +45,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return<>
+  return<QueryClientProvider client={queryClient}>
   <Navbar/>
   <Outlet />
-  </> 
+  </QueryClientProvider> 
 }
