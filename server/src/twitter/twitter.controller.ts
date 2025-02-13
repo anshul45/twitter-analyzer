@@ -25,9 +25,13 @@ export class TwitterController {
   
 
   @Get()
-  async processText() {
+  async processText(
+    @Query() query: { skip?: string; take?: string },
+  ) {
     try {
-      const tweets = await this.twitter.getAnalysis();
+      const skip = parseInt(query.skip, 10) || 0; 
+      const take = parseInt(query.take, 10) || 150;
+      const tweets = await this.twitter.getTweets(skip,take);
       return tweets
     } catch (error) {
       throw new HttpException(

@@ -28,10 +28,10 @@ export const getCashtags = async (): Promise<any> => {
   }
 };
 
-export const getRawTweets = async () => {
+export const getRawTweets = async (skip:number, take:number) => {
   try {
     const response = await axios.get(
-      `${url}/twitter`
+      `${url}/twitter?skip=${skip}&take=${take}`
     );
     return response.data;
   } catch (error) {

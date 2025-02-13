@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Tweet {
   cashtags: string[];
@@ -23,8 +23,8 @@ interface Tweet {
   qualityScore: number;
   type: string;
   id: string;
-  retweet: boolean,
-  quote: boolean
+  retweet: boolean;
+  quote: boolean;
 }
 
 interface Filters {
@@ -42,41 +42,66 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
+  const [page, setPage] = useState(0);
   const [data, setData] = useState<Tweet[]>([]);
   const [filteredData, setFilteredData] = useState<Tweet[]>([]);
-  const [openSummaryModal, setOpenSummaryModal] = useState<boolean>(false)
-  const [summaryText, setSummaryText] = useState<string>("")
-  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false)
-  const [title, setTitle] = useState<string>("")
-  const [filters, setFilters] = useState({
+  const [openSummaryModal, setOpenSummaryModal] = useState<boolean>(false);
+  const [summaryText, setSummaryText] = useState<string>('');
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
+  const [title, setTitle] = useState<string>('');
+  const [filters, setFilters] = useState<Filters>({
     date: null,
     username: 'All',
     cashtag: '',
     type: 'All',
   });
 
-    
-    const { data: tweets = [], isLoading: isLoadingTweets, error } = useQuery<
-    Tweet[],
-    Error 
-  >({
-      queryKey: ['tweets'],
-      queryFn: async () => {
-        const data = await getRawTweets();
-        return data?.map((tweet: Tweet) => ({
-          ...tweet,
-          createdAt: tweet.createdAt,
-        })) || [];
-      },
-      staleTime: 20 * 60 * 1000 //expiry
-});
+  const size = 15; 
+  const queryClient = useQueryClient();
 
+  // Fetch initial tweets
+  const { data: tweets = [], isLoading: isLoadingTweets, error } = useQuery<Tweet[], Error>({
+    queryKey: ['tweets'],
+    queryFn: async () => {
+      const skip = 0;
+      return getRawTweets(skip, 150);
+    },
+    staleTime: 20 * 60 * 1000, 
+  });
 
+  // Load more tweets using mutation
+  const loadMoreMutation = useMutation({
+    mutationFn: async ({ skip, take }: { skip: number; take: number }) => {
+      return getRawTweets(skip, take);
+    },
+    onSuccess: (newTweets) => {
+      queryClient.setQueryData<Tweet[]>(['tweets'], (oldTweets = []) => [
+        ...oldTweets,
+        ...newTweets,
+      ]);
+
+      setData((prevData) => [...prevData, ...newTweets]);
+      setFilteredData((prevFilteredData) => [...prevFilteredData, ...newTweets]);
+    },
+  });
+
+  const handleLoadMore = (page:number) => {
+ 
+    const skip = page * size + 1;
+
+    loadMoreMutation.mutate(
+      { skip, take: skip + 150 },
+      {
+        onSuccess: () => {
+          console.log('More data loaded successfully');
+        },
+      }
+    );
+  };
 
   const sortedTweets = useMemo(() => {
     return tweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
   }, [tweets]);
-
 
   useEffect(() => {
     setData(sortedTweets);
@@ -94,7 +119,8 @@ export default function Index() {
 
       const filtered = sortedTweets.filter((tweet) => {
         const matchesDate =
-          !updatedFilters.date || dayjs(tweet.date).utc().startOf('day').isSame(
+          !updatedFilters.date ||
+          dayjs(tweet.date).utc().startOf('day').isSame(
             dayjs(updatedFilters.date).utc().startOf('day')
           );
         const matchesUsername =
@@ -110,7 +136,6 @@ export default function Index() {
         return matchesDate && matchesUsername && matchesCashtag && matchesType;
       });
 
-      // Generate a useful title dynamically
       const generateTitle = () => {
         const parts: string[] = [];
 
@@ -128,9 +153,7 @@ export default function Index() {
         }
 
         // Combine parts and return a default if no filters are active
-        return parts.length > 0
-          ? parts.join(' ')
-          : 'Viewing All Tweets';
+        return parts.length > 0 ? parts.join(' ') : 'Viewing All Tweets';
       };
 
       setTitle(generateTitle());
@@ -140,26 +163,20 @@ export default function Index() {
     });
   };
 
-
-
-
   const handleSummary = async () => {
-    setOpenSummaryModal(true)
-    setIsLoadingSummary(true)
+    setOpenSummaryModal(true);
+    setIsLoadingSummary(true);
     try {
       const result = await getSummary(filteredData, title);
       setSummaryText(result);
     } catch (error) {
-      console.error('Error fetching summary:', error)
-      setSummaryText('Failed to load summary. Please try again.')
+      console.error('Error fetching summary:', error);
+      setSummaryText('Failed to load summary. Please try again.');
     } finally {
-      setIsLoadingSummary(false)
+      setIsLoadingSummary(false);
     }
-  }
+  };
 
-
-
-  // Get unique usernames for the username filter dropdown
   const uniqueUsernames = useMemo(() => {
     return [...new Set(sortedTweets.map((tweet) => tweet.username))];
   }, [sortedTweets]);
@@ -167,7 +184,6 @@ export default function Index() {
   const uniqueTypes = useMemo(() => {
     return [...new Set(sortedTweets.map((tweet) => tweet.type))];
   }, [sortedTweets]);
-
 
   return (
     <>
@@ -220,7 +236,9 @@ export default function Index() {
               </div>
               <div>
                 <h1 className="font-semibold text-sm">Summarize</h1>
-                <Button type='primary' disabled={!isFilterChanged} onClick={handleSummary}>Get Summary</Button>
+                <Button type="primary" disabled={!isFilterChanged} onClick={handleSummary}>
+                  Get Summary
+                </Button>
               </div>
             </Space>
           </div>
@@ -231,26 +249,13 @@ export default function Index() {
               <Spin size="large" />
             </Flex>
           ) : (
-            filteredData.length ?
-            <CustomTable tweets={filteredData} /> : null
+            filteredData.length ? (
+              <CustomTable tweets={filteredData} loadMoreTweets={handleLoadMore} />
+            ) : null
           )}
         </div>
       </div>
-      {/* <Modal 
-        width={800} 
-        style={{overflowY:"auto"}}
-        open={openSummaryModal} 
-        onCancel={() => setOpenSummaryModal(false)} 
-        footer={<Button onClick={() => setOpenSummaryModal(false)}>Close</Button>}
-      >
-        <Flex justify='center' className='h-[60vh] p-4' align='center'>
-          {isLoadingSummary ? (
-            <Spin />
-          ) : (
-            <div className="whitespace-pre-wrap">{summaryText}</div>
-          )}
-        </Flex>
-      </Modal> */}
+
       <Drawer
         width={700}
         onClose={() => setOpenSummaryModal(false)}
@@ -258,8 +263,8 @@ export default function Index() {
         styles={{
           body: {
             padding: '24px',
-            background: '#f8fafc'
-          }
+            background: '#f8fafc',
+          },
         }}
       >
         <Flex justify="center" className="p-4" align="center">
