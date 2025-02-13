@@ -61,15 +61,37 @@ export class TwitterService {
   }
 
 
-  async getAnalysis(): Promise<any> {
+  async getTweets(skip: number, take: number): Promise<any> {
     try {
-      const tweets = await this.prismaService.tweet.findMany();
-      return tweets;
+      const tweets = await this.prismaService.$runCommandRaw({
+        aggregate: "Tweet",
+        pipeline: [
+          {
+            $addFields: {
+              parsedDate: {
+                $dateFromString: {
+                  dateString: { $substrBytes: ["$createdAt", 4, -1] }, 
+                  format: "%b %d %H:%M:%S %z %Y", 
+                },
+              },
+            },
+          },
+          { $match: { parsedDate: { $ne: null } } }, 
+          { $sort: { parsedDate: -1 } }, 
+          { $skip: skip },                  
+          { $limit: take },               
+        ],
+        cursor: { batchSize: 150 },
+      });
+      
+      //@ts-ignore
+      return tweets.cursor?.firstBatch || []; 
     } catch (error) {
-      console.error('Error fetching tweets:', error);
-      throw new Error('Failed to fetch tweets.');
+      console.error("Error fetching tweets:", error);
+      throw new Error("Failed to fetch tweets.");
     }
   }
+  
 
 
 

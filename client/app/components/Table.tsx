@@ -1,5 +1,5 @@
 import React from 'react';
-import {Flex, Popover, Table, Tag } from 'antd';
+import {Button, Flex, Popover, Table, Tag } from 'antd';
 import type { TableProps } from 'antd';
 
 interface DataType {
@@ -103,9 +103,10 @@ interface AppProps {
     retweet: boolean,
     quote: boolean
   }[];
+  loadMoreTweets:any
 }
 
-const App: React.FC<AppProps> = ({ tweets }) => {
+const App: React.FC<AppProps> = ({ tweets,loadMoreTweets }) => {
   // Transform tweets into DataType for the table
   const data: DataType[] = tweets.map((tweet) => ({
     key: tweet.id,
@@ -120,6 +121,13 @@ const App: React.FC<AppProps> = ({ tweets }) => {
     retweet:tweet.retweet
   }));
 
+  const handleTableChange = (pagination: any) => {
+    const newPage = pagination.current; 
+    if(newPage === tweets.length / 15){
+      loadMoreTweets(newPage)
+    }
+  };
+
 
 
   return (
@@ -133,6 +141,7 @@ const App: React.FC<AppProps> = ({ tweets }) => {
           pageSize: 15,
           showSizeChanger: false
         }}
+        onChange={handleTableChange}
       />
     </div>
   );
