@@ -300,7 +300,7 @@ const analysis = () => {
       </Drawer>
       <Drawer
         title="Tweets"
-        width={800}
+        width={1000}
         onClose={() => setShowTweets(false)}
         open={showTweets}
         styles={{
@@ -320,7 +320,7 @@ const analysis = () => {
               title: 'Tweet Content',
               dataIndex: 'content',
               key: 'content',
-              width: '70%',
+              width: '85%',
               render: (content: string) => (
                 <div style={{ whiteSpace: 'pre-wrap' }}>
                   <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{content?.split('\n\n')[0]}</div>
@@ -332,6 +332,7 @@ const analysis = () => {
               title: 'Link',
               dataIndex: 'url',
               key: 'url',
+              width: '15%',
               render: (url: string) => (
                 <a href={url} target="_blank" rel="noopener noreferrer">
                   View Tweet
