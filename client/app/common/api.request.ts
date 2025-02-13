@@ -7,7 +7,7 @@ export interface DailyReport {
   report: string;
 }
 
-const url = "https://ec2-54-174-172-135.compute-1.amazonaws.com"
+const url = "https://api.prakarlabs.com"
 // const url = "http://localhost:8000"
 
 
@@ -28,10 +28,10 @@ export const getCashtags = async (): Promise<any> => {
   }
 };
 
-export const getRawTweets = async () => {
+export const getRawTweets = async (skip:number, take:number) => {
   try {
     const response = await axios.get(
-      `${url}/twitter`
+      `${url}/twitter?skip=${skip}&take=${take}`
     );
     return response.data;
   } catch (error) {
