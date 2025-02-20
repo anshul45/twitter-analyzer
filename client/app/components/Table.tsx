@@ -1,6 +1,7 @@
 import React from 'react';
-import {Button, Flex, Popover, Table, Tag } from 'antd';
+import { Flex, Popover, Table, Tag, message } from 'antd';
 import type { TableProps } from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface DataType {
   key: string;
@@ -29,18 +30,18 @@ const columns: TableProps<DataType>['columns'] = [
     dataIndex: 'date',
     key: 'createdAt',
     width: 110,
-    render:(date) => <div>{date.slice(0,10)}</div>
+    render: (date) => <div>{date.slice(0, 10)}</div>
   },
   {
     title: 'Tweet',
     dataIndex: 'text',
     key: 'text',
-    render:(tweet) =>
-    <Popover content={<div style={{ background: '#f8fafc', borderRadius:"10px", padding: '10px'}}>{tweet}</div>}  trigger="click" overlayStyle={{ width: 700, backgroundColor:"white", }}>
-     <div className={"cursor-pointer"}>
-    {tweet.slice(0,250)}{tweet.length>250 ? " ...":null}
-     </div>
-  </Popover>,
+    render: (tweet) =>
+      <Popover content={<div style={{ background: '#f8fafc', borderRadius: "10px", padding: '10px' }}>{tweet}</div>} trigger="click" overlayStyle={{ width: 700, backgroundColor: "white", }}>
+        <div className={"cursor-pointer"}>
+          {tweet.slice(0, 250)}{tweet.length > 250 ? " ..." : null}
+        </div>
+      </Popover>,
     width: 430,
   },
   {
@@ -71,13 +72,13 @@ const columns: TableProps<DataType>['columns'] = [
     dataIndex: 'qualityScore',
     render: (score) => (
       <Flex justify='center'>
-      <span style={{ 
-        color: score ? (score > 7 ? 'green' : score > 4 ? 'orange' : 'red') : 'gray',
-        fontWeight: 'bold',
-      }}>
-        {score ? score : 'N/A'}
-      </span>
-        </Flex>
+        <span style={{
+          color: score ? (score > 7 ? 'green' : score > 4 ? 'orange' : 'red') : 'gray',
+          fontWeight: 'bold',
+        }}>
+          {score ? score : 'N/A'}
+        </span>
+      </Flex>
     ),
     width: 122,
   },
@@ -99,14 +100,18 @@ interface AppProps {
     tweetId: string;
     type: string;
     qualityScore?: number;
-    id:string
+    id: string
     retweet: boolean,
     quote: boolean
   }[];
-  loadMoreTweets:any
+  loadMoreTweets: any
 }
 
-const App: React.FC<AppProps> = ({ tweets,loadMoreTweets }) => {
+const App: React.FC<AppProps> = ({ tweets, loadMoreTweets }) => {
+
+  const [messageApi, contextHolder] = message.useMessage();
+  const key = 'load-more';
+
   // Transform tweets into DataType for the table
   const data: DataType[] = tweets.map((tweet) => ({
     key: tweet.id,
@@ -117,24 +122,42 @@ const App: React.FC<AppProps> = ({ tweets,loadMoreTweets }) => {
     tweetUrl: `https://x.com/${tweet.username}/status/${tweet.tweetId}`,
     type: tweet.type,
     qualityScore: tweet.qualityScore,
-    quote:tweet.quote,
-    retweet:tweet.retweet
+    quote: tweet.quote,
+    retweet: tweet.retweet
   }));
 
+  const queryClient = useQueryClient();
+
+  const { data: lastPage = 200, refetch, isLoading } = useQuery<number, Error>({
+    queryKey: ['lastPage'],
+    queryFn: () => Promise.resolve(200),
+    initialData: 200,
+    staleTime: 20 * 60 * 1000,
+  });
+
   const handleTableChange = (pagination: any) => {
-    const newPage = pagination.current; 
-    if(newPage === tweets.length / 15){
-      loadMoreTweets(newPage)
+    const currentPage = pagination.current;
+
+    if (currentPage === lastPage) {
+      messageApi.open({
+        key,
+        type: 'loading',
+        content: 'Loading more tweets please wait...',
+        duration:1
+      });
+
+      loadMoreTweets(currentPage)
+      queryClient.setQueryData(['lastPage'], lastPage + 200);
     }
   };
 
 
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width:'100%', height: '100%', overflow: 'hidden' }}>
-      <Table<DataType> 
-        columns={columns} 
-        dataSource={data} 
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
+      {contextHolder}
+      <Table<DataType>
+        columns={columns}
+        dataSource={data}
         scroll={{ x: 'max-content', y: 'calc(100vh - 254px)' }}
         pagination={{
           position: ['bottomCenter'],
