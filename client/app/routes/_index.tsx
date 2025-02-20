@@ -5,7 +5,7 @@
 import { MetaFunction } from '@remix-run/node';
 import { useEffect, useMemo, useState } from 'react';
 import { getRawTweets, getSummary } from '~/common/api.request';
-import { Input, Flex, Select, Space, DatePicker, Button, Modal, Spin, Drawer } from 'antd';
+import { Input, Flex, Select, Space, DatePicker, Button, message, Spin, Drawer } from 'antd';
 import CustomTable from '~/components/Table';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -55,6 +55,9 @@ export default function Index() {
     cashtag: '',
     type: 'All',
   });
+  const [messageApi, contextHolder] = message.useMessage();
+    const key = 'load-more';
+
 
   const size = 15; 
   const queryClient = useQueryClient();
@@ -62,12 +65,11 @@ export default function Index() {
   // Fetch initial tweets
   const { data: tweets = [], isLoading: isLoadingTweets, error } = useQuery<Tweet[], Error>({
     queryKey: ['tweets'],
-    queryFn: async () => {
-      const skip = 0;
-      return getRawTweets(skip, 150);
-    },
+    queryFn: async () =>  getRawTweets(0, 3000),
     staleTime: 20 * 60 * 1000, 
   });
+  
+  console.log(tweets)
 
   // Load more tweets using mutation
   const loadMoreMutation = useMutation({
@@ -87,27 +89,34 @@ export default function Index() {
 
   const handleLoadMore = (page:number) => {
  
-    const skip = page * size + 1;
+    const skip = page * size;
 
     loadMoreMutation.mutate(
-      { skip, take: skip + 150 },
+      { skip, take: skip + 3000 },
       {
         onSuccess: () => {
           console.log('More data loaded successfully');
+          messageApi.open({
+            key,
+            type: 'success',
+            content: 'More tweets loaded successfully!',
+            duration: 2,
+          });
         },
       }
     );
   };
 
-  const sortedTweets = useMemo(() => {
-    return tweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
-  }, [tweets]);
-
-  useEffect(() => {
-    setData(sortedTweets);
-    setFilteredData(sortedTweets);
-  }, [sortedTweets]);
-
+    
+    const sortedTweets = useMemo(() => {
+      return tweets.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+    }, [tweets]);
+    
+    useEffect(() => {
+      setData(sortedTweets);
+      setFilteredData(sortedTweets);
+    }, [sortedTweets]);
+    
   dayjs.extend(utc);
   const isFilterChanged = useMemo(() => {
     return JSON.stringify(filteredData) !== JSON.stringify(data);
@@ -186,7 +195,7 @@ export default function Index() {
   }, [sortedTweets]);
 
   return (
-    <>
+    <>{contextHolder}
       <div className="px-5 py-2">
         <Flex gap={100}>
           <div>
