@@ -65,11 +65,10 @@ export default function Index() {
   // Fetch initial tweets
   const { data: tweets = [], isLoading: isLoadingTweets, error } = useQuery<Tweet[], Error>({
     queryKey: ['tweets'],
-    queryFn: async () =>  getRawTweets(0, 3000),
+    queryFn: async () =>  getRawTweets(0, 1500),
     staleTime: 20 * 60 * 1000, 
   });
-  
-  console.log(tweets)
+
 
   // Load more tweets using mutation
   const loadMoreMutation = useMutation({
@@ -92,7 +91,7 @@ export default function Index() {
     const skip = page * size;
 
     loadMoreMutation.mutate(
-      { skip, take: skip + 3000 },
+      { skip, take: skip + 1500 },
       {
         onSuccess: () => {
           console.log('More data loaded successfully');

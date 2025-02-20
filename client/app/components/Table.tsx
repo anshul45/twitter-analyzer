@@ -128,10 +128,10 @@ const App: React.FC<AppProps> = ({ tweets, loadMoreTweets }) => {
 
   const queryClient = useQueryClient();
 
-  const { data: lastPage = 200, refetch, isLoading } = useQuery<number, Error>({
+  const { data: lastPage = 100, refetch, isLoading } = useQuery<number, Error>({
     queryKey: ['lastPage'],
-    queryFn: () => Promise.resolve(200),
-    initialData: 200,
+    queryFn: () => Promise.resolve(100),
+    initialData: 100,
     staleTime: 20 * 60 * 1000,
   });
 
@@ -143,11 +143,11 @@ const App: React.FC<AppProps> = ({ tweets, loadMoreTweets }) => {
         key,
         type: 'loading',
         content: 'Loading more tweets please wait...',
-        duration:1
+        duration:2
       });
 
       loadMoreTweets(currentPage)
-      queryClient.setQueryData(['lastPage'], lastPage + 200);
+      queryClient.setQueryData(['lastPage'], lastPage + 100);
     }
   };
 
